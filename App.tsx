@@ -32,8 +32,11 @@ export default function App() {
     subscription.current = await Location.watchPositionAsync(
       {
         accuracy: Location.Accuracy.BestForNavigation,
+        // Emit on a time cadence (~1 Hz). distanceInterval must be 0,
+        // otherwise updates are suppressed until you move that many
+        // meters — which reads as "frozen" when standing still.
         timeInterval: 1000,
-        distanceInterval: 1,
+        distanceInterval: 0,
       },
       (next) => setLocation(next)
     );
