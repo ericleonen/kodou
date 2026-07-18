@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import * as DocumentPicker from "expo-document-picker";
+import { reorderItems } from "react-native-reorderable-list";
 import { SEED_PRESETS } from "./mockPresets";
 import { deleteSoundFile, loadData, persistSoundFile, saveData } from "./storage";
 import { Preset, Rule, Sound } from "./types";
@@ -23,9 +24,11 @@ interface StoreValue {
   sounds: Sound[];
   createPreset: (name: string, description?: string) => string;
   deletePreset: (id: string) => void;
+  reorderPresets: (from: number, to: number) => void;
   addRule: (presetId: string, rule: RuleDraft) => void;
   updateRule: (presetId: string, rule: Rule) => void;
   deleteRule: (presetId: string, ruleId: string) => void;
+  reorderRules: (presetId: string, from: number, to: number) => void;
   /** Opens the file picker, persists the chosen audio, returns the new sound. */
   addSound: () => Promise<Sound | null>;
   deleteSound: (id: string) => void;
@@ -73,6 +76,10 @@ export function ProgramStoreProvider({ children }: { children: ReactNode }) {
     setPresets((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
+  const reorderPresets = useCallback((from: number, to: number) => {
+    setPresets((prev) => reorderItems(prev, from, to));
+  }, []);
+
   const addRule = useCallback((presetId: string, rule: RuleDraft) => {
     setPresets((prev) =>
       prev.map((p) =>
@@ -95,6 +102,14 @@ export function ProgramStoreProvider({ children }: { children: ReactNode }) {
     setPresets((prev) =>
       prev.map((p) =>
         p.id === presetId ? { ...p, rules: p.rules.filter((r) => r.id !== ruleId) } : p
+      )
+    );
+  }, []);
+
+  const reorderRules = useCallback((presetId: string, from: number, to: number) => {
+    setPresets((prev) =>
+      prev.map((p) =>
+        p.id === presetId ? { ...p, rules: reorderItems(p.rules, from, to) } : p
       )
     );
   }, []);
@@ -135,9 +150,11 @@ export function ProgramStoreProvider({ children }: { children: ReactNode }) {
         sounds,
         createPreset,
         deletePreset,
+        reorderPresets,
         addRule,
         updateRule,
         deleteRule,
+        reorderRules,
         addSound,
         deleteSound,
         soundName,

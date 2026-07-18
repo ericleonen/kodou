@@ -9,7 +9,15 @@ import { Rule } from "./types";
  * Renders one rule: the moment as a sentence, then each response below it
  * marked with an arrow to read as "→ do this".
  */
-export default function RuleCard({ rule, onPress }: { rule: Rule; onPress?: () => void }) {
+export default function RuleCard({
+  rule,
+  onPress,
+  onLongPress,
+}: {
+  rule: Rule;
+  onPress?: () => void;
+  onLongPress?: () => void;
+}) {
   const { soundName } = useStore();
   const moment = MOMENTS[rule.moment.type];
 
@@ -17,6 +25,8 @@ export default function RuleCard({ rule, onPress }: { rule: Rule; onPress?: () =
     <TouchableOpacity
       style={styles.card}
       onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={200}
       activeOpacity={0.7}
       disabled={!onPress}
     >

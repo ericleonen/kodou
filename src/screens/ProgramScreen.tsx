@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -10,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import ReorderableList, { useReorderableDrag } from "react-native-reorderable-list";
 import { colors, radius, spacing, typography } from "../theme";
 import { useStore } from "../program/store";
 import { CriticalMoment, Preset, Rule, RuleResponse } from "../program/types";
@@ -24,12 +24,14 @@ type Tab = "presets" | "sounds";
 
 /**
  * Program tab. Two sub-tabs: a library of presets (the runner picks one
- * at run time, so none is "active") and the sound library. Drilling into
- * a preset shows its rules full-screen. Local state instead of a router.
+ * at run time, so none is "active") and the sound library. Both the
+ * preset list and a preset's moments can be reordered by long-pressing
+ * and dragging. Local state instead of a router.
  */
 export default function ProgramScreen() {
   const store = useStore();
-  const { presets, createPreset, deletePreset, addRule, updateRule, deleteRule } = store;
+  const { presets, createPreset, deletePreset, reorderPresets, addRule, updateRule, deleteRule } =
+    store;
 
   const [tab, setTab] = useState<Tab>("presets");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -92,6 +94,7 @@ export default function ProgramScreen() {
         <PresetDetail
           preset={selected}
           onBack={() => setSelectedId(null)}
+          onReorderRules={(from, to) => store.reorderRules(selected.id, from, to)}
           onAddRule={() => setEditor({ rule: null })}
           onEditRule={(rule) => setEditor({ rule })}
           onDelete={() => confirmDeletePreset(selected)}
@@ -116,13 +119,25 @@ export default function ProgramScreen() {
       </View>
 
       {tab === "presets" ? (
-        <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-          <Text style={styles.subtitle}>Presets you can pick from when you start a run.</Text>
-          {presets.map((preset) => (
-            <PresetCard key={preset.id} preset={preset} onPress={() => setSelectedId(preset.id)} />
-          ))}
-          <SecondaryButton icon="plus" label="New preset" onPress={() => setPresetFormOpen(true)} />
-        </ScrollView>
+        <ReorderableList
+          data={presets}
+          keyExtractor={(item) => item.id}
+          onReorder={({ from, to }) => reorderPresets(from, to)}
+          style={styles.flex}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            <Text style={[styles.subtitle, styles.itemSpacing]}>
+              Presets you can pick from when you start a run.
+            </Text>
+          }
+          ListFooterComponent={
+            <SecondaryButton icon="plus" label="New preset" onPress={() => setPresetFormOpen(true)} />
+          }
+          renderItem={({ item }) => (
+            <DraggablePreset preset={item} onOpen={setSelectedId} />
+          )}
+        />
       ) : (
         <SoundsScreen />
       )}
@@ -136,15 +151,35 @@ export default function ProgramScreen() {
   );
 }
 
+function DraggablePreset({ preset, onOpen }: { preset: Preset; onOpen: (id: string) => void }) {
+  const drag = useReorderableDrag();
+  return (
+    <View style={styles.itemSpacing}>
+      <PresetCard preset={preset} onPress={() => onOpen(preset.id)} onLongPress={drag} />
+    </View>
+  );
+}
+
+function DraggableRule({ rule, onEdit }: { rule: Rule; onEdit: (rule: Rule) => void }) {
+  const drag = useReorderableDrag();
+  return (
+    <View style={styles.itemSpacing}>
+      <RuleCard rule={rule} onPress={() => onEdit(rule)} onLongPress={drag} />
+    </View>
+  );
+}
+
 function PresetDetail({
   preset,
   onBack,
+  onReorderRules,
   onAddRule,
   onEditRule,
   onDelete,
 }: {
   preset: Preset;
   onBack: () => void;
+  onReorderRules: (from: number, to: number) => void;
   onAddRule: () => void;
   onEditRule: (rule: Rule) => void;
   onDelete: () => void;
@@ -170,22 +205,29 @@ function PresetDetail({
         {preset.description ? <Text style={styles.subtitle}>{preset.description}</Text> : null}
       </View>
 
-      <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-        {preset.rules.length === 0 ? (
+      <ReorderableList
+        data={preset.rules}
+        keyExtractor={(item) => item.id}
+        onReorder={({ from, to }) => onReorderRules(from, to)}
+        style={styles.flex}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
           <Text style={styles.empty}>No moments yet. Add one to start programming.</Text>
-        ) : (
-          preset.rules.map((rule) => (
-            <RuleCard key={rule.id} rule={rule} onPress={() => onEditRule(rule)} />
-          ))
-        )}
-        <SecondaryButton icon="plus" label="Add moment" onPress={onAddRule} />
-        {preset.rules.length > 0 ? (
-          <TouchableOpacity style={styles.testButton} onPress={testPreset} activeOpacity={0.85}>
-            <MaterialCommunityIcons name="play" size={18} color={colors.primary} />
-            <Text style={styles.testText}>Test preset</Text>
-          </TouchableOpacity>
-        ) : null}
-      </ScrollView>
+        }
+        ListFooterComponent={
+          <View style={styles.footer}>
+            <SecondaryButton icon="plus" label="Add moment" onPress={onAddRule} />
+            {preset.rules.length > 0 ? (
+              <TouchableOpacity style={styles.testButton} onPress={testPreset} activeOpacity={0.85}>
+                <MaterialCommunityIcons name="play" size={18} color={colors.primary} />
+                <Text style={styles.testText}>Test preset</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        }
+        renderItem={({ item }) => <DraggableRule rule={item} onEdit={onEditRule} />}
+      />
     </>
   );
 }
@@ -233,6 +275,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
+  },
+  flex: {
+    flex: 1,
   },
   centered: {
     alignItems: "center",
@@ -290,9 +335,15 @@ const styles = StyleSheet.create({
   segmentTextActive: {
     color: colors.primary,
   },
-  list: {
-    gap: spacing.md,
+  listContent: {
     paddingBottom: spacing.xl,
+  },
+  // Per-item spacing (a list can't rely on container `gap` for its rows).
+  itemSpacing: {
+    marginBottom: spacing.md,
+  },
+  footer: {
+    gap: spacing.md,
   },
   empty: {
     ...typography.body,

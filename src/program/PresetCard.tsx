@@ -8,10 +8,24 @@ import { Preset } from "./types";
  * Summary card for a preset in the library list: name, description,
  * rule count, and a preview strip of the moment icons it reacts to.
  */
-export default function PresetCard({ preset, onPress }: { preset: Preset; onPress: () => void }) {
+export default function PresetCard({
+  preset,
+  onPress,
+  onLongPress,
+}: {
+  preset: Preset;
+  onPress: () => void;
+  onLongPress?: () => void;
+}) {
   const count = preset.rules.length;
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={200}
+      activeOpacity={0.7}
+    >
       <View style={styles.top}>
         <View style={styles.info}>
           <Text style={styles.name}>{preset.name}</Text>
