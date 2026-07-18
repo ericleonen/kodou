@@ -10,7 +10,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { colors, radius, spacing, typography } from "../theme";
 
-export type DropdownOption = { label: string; value: string };
+export type DropdownOption = { label: string; value: string; description?: string };
 
 type Props = {
   value: string | null;
@@ -62,7 +62,12 @@ export default function Dropdown({
                   }}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.rowText, on && styles.rowTextOn]}>{option.label}</Text>
+                  <View style={styles.rowLabels}>
+                    <Text style={[styles.rowText, on && styles.rowTextOn]}>{option.label}</Text>
+                    {option.description ? (
+                      <Text style={styles.rowDesc}>{option.description}</Text>
+                    ) : null}
+                  </View>
                   {on ? (
                     <MaterialCommunityIcons name="check" size={18} color={colors.primary} />
                   ) : null}
@@ -130,13 +135,25 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
+  rowLabels: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: spacing.sm,
+    flexShrink: 1,
+  },
   rowText: {
     ...typography.body,
+    fontWeight: "700",
     color: colors.text,
   },
   rowTextOn: {
     color: colors.primary,
-    fontWeight: "600",
+  },
+  rowDesc: {
+    ...typography.label,
+    fontWeight: "500",
+    color: colors.textMuted,
+    flexShrink: 1,
   },
   footer: {
     justifyContent: "flex-start",

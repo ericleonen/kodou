@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   CriticalMoment,
+  DistanceUnit,
   MomentType,
   PaceUnit,
   ProximityUnit,
@@ -14,6 +15,7 @@ type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 export const MOMENTS: Record<MomentType, { label: string; icon: IconName }> = {
   slowing_down: { label: "I slow down", icon: "trending-down" },
   almost_done: { label: "I'm almost done", icon: "flag-checkered" },
+  split: { label: "I reach a split", icon: "map-marker-distance" },
 };
 
 /** The curated set of responses. */
@@ -24,6 +26,18 @@ export const RESPONSES: Record<ResponseKind, { label: string; icon: IconName }> 
 
 export const PACE_UNITS: PaceUnit[] = ["mi/min", "km/min"];
 export const PROXIMITY_UNITS: ProximityUnit[] = ["mi", "km", "m", "min", "sec"];
+export const DISTANCE_UNITS: DistanceUnit[] = ["mi", "km", "m"];
+
+/** Full names for units, shown alongside the short form in pickers. */
+export const UNIT_NAMES: Record<string, string> = {
+  "mi/min": "miles per minute",
+  "km/min": "kilometers per minute",
+  mi: "miles",
+  km: "kilometers",
+  m: "meters",
+  min: "minutes",
+  sec: "seconds",
+};
 
 /** Builds the readable sentence for a moment, per its parameters. */
 export function describeMoment(moment: CriticalMoment): string {
@@ -32,6 +46,8 @@ export function describeMoment(moment: CriticalMoment): string {
       return `Pace drops below ${moment.threshold} ${moment.unit}`;
     case "almost_done":
       return `Within ${moment.amount} ${moment.unit} of my goal`;
+    case "split":
+      return `Every ${moment.interval} ${moment.unit}`;
   }
 }
 

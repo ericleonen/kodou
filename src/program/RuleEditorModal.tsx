@@ -12,11 +12,19 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Dropdown from "../components/Dropdown";
 import { useKeyboardHeight } from "../hooks/useKeyboardHeight";
 import { colors, radius, spacing, typography } from "../theme";
-import { MOMENTS, PACE_UNITS, PROXIMITY_UNITS, RESPONSES } from "./catalog";
+import {
+  DISTANCE_UNITS,
+  MOMENTS,
+  PACE_UNITS,
+  PROXIMITY_UNITS,
+  RESPONSES,
+  UNIT_NAMES,
+} from "./catalog";
 import { useStore } from "./store";
 import SoundEditorModal from "./SoundEditorModal";
 import {
   CriticalMoment,
+  DistanceUnit,
   MomentType,
   PaceUnit,
   ProximityUnit,
@@ -31,9 +39,28 @@ type ResponseDraft =
 const DEFAULT_UNIT: Record<MomentType, string> = {
   slowing_down: PACE_UNITS[0],
   almost_done: PROXIMITY_UNITS[1], // "km"
+  split: "km",
+};
+
+const PARAM_LEAD: Record<MomentType, string> = {
+  slowing_down: "Pace drops below",
+  almost_done: "Within",
+  split: "Every",
 };
 
 const MAX_VIBRATIONS = 10;
+
+/** The numeric parameter of a moment, regardless of its type. */
+function momentValue(moment: CriticalMoment): number {
+  switch (moment.type) {
+    case "slowing_down":
+      return moment.threshold;
+    case "almost_done":
+      return moment.amount;
+    case "split":
+      return moment.interval;
+  }
+}
 
 /** Keeps only a positive decimal: digits and a single dot, no sign. */
 function sanitizeDecimal(text: string): string {
@@ -75,13 +102,7 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
     if (!visible) return;
     if (initial) {
       setMomentType(initial.moment.type);
-      setAmount(
-        String(
-          initial.moment.type === "slowing_down"
-            ? initial.moment.threshold
-            : initial.moment.amount
-        )
-      );
+      setAmount(String(momentValue(initial.moment)));
       setUnit(initial.moment.unit);
       setResponses(
         initial.responses.map((r) =>
@@ -131,10 +152,15 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
 
   function save() {
     if (!canSave || momentType === null) return;
-    const moment: CriticalMoment =
-      momentType === "slowing_down"
-        ? { type: "slowing_down", threshold: Number(amount), unit: unit as PaceUnit }
-        : { type: "almost_done", amount: Number(amount), unit: unit as ProximityUnit };
+    const value = Number(amount);
+    let moment: CriticalMoment;
+    if (momentType === "slowing_down") {
+      moment = { type: "slowing_down", threshold: value, unit: unit as PaceUnit };
+    } else if (momentType === "almost_done") {
+      moment = { type: "almost_done", amount: value, unit: unit as ProximityUnit };
+    } else {
+      moment = { type: "split", interval: value, unit: unit as DistanceUnit };
+    }
     const built: RuleResponse[] = responses.map((r) =>
       r.kind === "sound"
         ? { kind: "sound", soundId: r.soundId as string }
@@ -143,7 +169,12 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
     onSubmit({ moment, responses: built });
   }
 
-  const units = momentType === "slowing_down" ? PACE_UNITS : PROXIMITY_UNITS;
+  const units =
+    momentType === "slowing_down"
+      ? PACE_UNITS
+      : momentType === "split"
+        ? DISTANCE_UNITS
+        : PROXIMITY_UNITS;
   const soundOptions = sounds.map((s) => ({ label: s.name, value: s.id }));
 
   return (
@@ -187,9 +218,7 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
 
             {momentType !== null ? (
               <View style={styles.paramBlock}>
-                <Text style={styles.paramLead}>
-                  {momentType === "slowing_down" ? "Pace drops below" : "Within"}
-                </Text>
+                <Text style={styles.paramLead}>{PARAM_LEAD[momentType]}</Text>
                 <View style={styles.paramRow}>
                   <TextInput
                     style={[styles.numberInput, amountError && styles.inputError]}
@@ -202,7 +231,7 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
                   <Dropdown
                     style={styles.unitDropdown}
                     value={unit || null}
-                    options={units.map((u) => ({ label: u, value: u }))}
+                    options={units.map((u) => ({ label: u, value: u, description: UNIT_NAMES[u] }))}
                     onSelect={setUnit}
                   />
                 </View>
@@ -268,28 +297,25 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
                     footerAction={{ label: "Add a sound", onPress: () => setSoundEditorFor(index) }}
                   />
                 ) : (
-                  <View>
-                    <View style={styles.vibrateRow}>
-                      <Text style={styles.vibrateLead}>Vibrate</Text>
-                      <TextInput
-                        style={[
-                          styles.numberInput,
-                          response.times !== "" && !vibrateValid(response.times) && styles.inputError,
-                        ]}
-                        value={response.times}
-                        onChangeText={(text) =>
-                          patchResponse(index, {
-                            kind: "vibrate",
-                            times: sanitizeInt(text, MAX_VIBRATIONS),
-                          })
-                        }
-                        keyboardType="number-pad"
-                        placeholder="1"
-                        placeholderTextColor={colors.textFaint}
-                      />
-                      <Text style={styles.vibrateLead}>times</Text>
-                    </View>
-                    <Text style={styles.hintText}>Between 1 and {MAX_VIBRATIONS}.</Text>
+                  <View style={styles.vibrateRow}>
+                    <Text style={styles.vibrateLead}>Vibrate</Text>
+                    <TextInput
+                      style={[
+                        styles.numberInput,
+                        response.times !== "" && !vibrateValid(response.times) && styles.inputError,
+                      ]}
+                      value={response.times}
+                      onChangeText={(text) =>
+                        patchResponse(index, {
+                          kind: "vibrate",
+                          times: sanitizeInt(text, MAX_VIBRATIONS),
+                        })
+                      }
+                      keyboardType="number-pad"
+                      placeholder="1"
+                      placeholderTextColor={colors.textFaint}
+                    />
+                    <Text style={styles.vibrateLead}>times</Text>
                   </View>
                 )}
               </View>
@@ -427,13 +453,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: colors.danger,
     marginTop: spacing.xs,
-  },
-  hintText: {
-    ...typography.label,
-    fontWeight: "500",
-    color: colors.textFaint,
-    marginTop: spacing.xs,
-    paddingHorizontal: spacing.sm,
   },
   unitDropdown: {
     flex: 1,

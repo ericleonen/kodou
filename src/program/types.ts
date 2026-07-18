@@ -9,11 +9,13 @@
 
 export type PaceUnit = "mi/min" | "km/min";
 export type ProximityUnit = "mi" | "km" | "m" | "min" | "sec";
+export type DistanceUnit = "mi" | "km" | "m";
 
-/** The two supported critical moments, each carrying its own parameters. */
+/** The supported critical moments, each carrying its own parameters. */
 export type CriticalMoment =
   | { type: "slowing_down"; threshold: number; unit: PaceUnit }
-  | { type: "almost_done"; amount: number; unit: ProximityUnit };
+  | { type: "almost_done"; amount: number; unit: ProximityUnit }
+  | { type: "split"; interval: number; unit: DistanceUnit };
 
 export type MomentType = CriticalMoment["type"];
 
