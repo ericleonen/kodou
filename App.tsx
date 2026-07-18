@@ -1,12 +1,15 @@
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { PresetsProvider } from "./src/program/PresetsContext";
 import RootNavigator from "./src/navigation/RootNavigator";
 
 export default function App() {
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
-      <RootNavigator />
+      <PresetsProvider>
+        <StatusBar style="light" />
+        <RootNavigator />
+      </PresetsProvider>
     </SafeAreaProvider>
   );
 }
