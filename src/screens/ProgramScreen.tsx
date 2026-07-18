@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   ScrollView,
   StyleSheet,
@@ -10,26 +11,29 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { colors, radius, spacing, typography } from "../theme";
-import { usePresets } from "../program/PresetsContext";
+import { useStore } from "../program/store";
 import { CriticalMoment, Preset, Rule, RuleResponse } from "../program/types";
 import PresetCard from "../program/PresetCard";
 import RuleCard from "../program/RuleCard";
 import PresetFormModal from "../program/PresetFormModal";
 import RuleEditorModal from "../program/RuleEditorModal";
+import SoundsScreen from "../program/SoundsScreen";
 
 type RuleData = { moment: CriticalMoment; responses: RuleResponse[] };
+type Tab = "presets" | "sounds";
 
 /**
- * Program tab. A library of presets the runner chooses from at run time
- * (none is "active" here). Tapping a preset drills into its rules. Uses
- * local state instead of a router to avoid extra native dependencies.
+ * Program tab. Two sub-tabs: a library of presets (the runner picks one
+ * at run time, so none is "active") and the sound library. Drilling into
+ * a preset shows its rules full-screen. Local state instead of a router.
  */
 export default function ProgramScreen() {
-  const { presets, createPreset, deletePreset, addRule, updateRule, deleteRule } = usePresets();
+  const store = useStore();
+  const { presets, createPreset, deletePreset, addRule, updateRule, deleteRule } = store;
 
+  const [tab, setTab] = useState<Tab>("presets");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [presetFormOpen, setPresetFormOpen] = useState(false);
-  // Rule editor state: closed (null), adding (rule: null), or editing (rule set).
   const [editor, setEditor] = useState<{ rule: Rule | null } | null>(null);
 
   const selected = useMemo(
@@ -73,9 +77,18 @@ export default function ProgramScreen() {
     ]);
   }
 
-  return (
-    <View style={styles.container}>
-      {selected ? (
+  if (!store.ready) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
+  // Preset detail is a full-screen view (no sub-tabs).
+  if (selected) {
+    return (
+      <View style={styles.container}>
         <PresetDetail
           preset={selected}
           onBack={() => setSelectedId(null)}
@@ -83,12 +96,35 @@ export default function ProgramScreen() {
           onEditRule={(rule) => setEditor({ rule })}
           onDelete={() => confirmDeletePreset(selected)}
         />
-      ) : (
-        <PresetList
-          presets={presets}
-          onOpen={setSelectedId}
-          onNew={() => setPresetFormOpen(true)}
+        <RuleEditorModal
+          visible={editor !== null}
+          initial={editor?.rule ?? null}
+          onSubmit={handleSubmitRule}
+          onDelete={editor?.rule ? handleDeleteRule : undefined}
+          onClose={() => setEditor(null)}
         />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Program</Text>
+      <View style={styles.segmented}>
+        <SegmentButton label="Presets" active={tab === "presets"} onPress={() => setTab("presets")} />
+        <SegmentButton label="Sounds" active={tab === "sounds"} onPress={() => setTab("sounds")} />
+      </View>
+
+      {tab === "presets" ? (
+        <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+          <Text style={styles.subtitle}>Presets you can pick from when you start a run.</Text>
+          {presets.map((preset) => (
+            <PresetCard key={preset.id} preset={preset} onPress={() => setSelectedId(preset.id)} />
+          ))}
+          <SecondaryButton icon="plus" label="New preset" onPress={() => setPresetFormOpen(true)} />
+        </ScrollView>
+      ) : (
+        <SoundsScreen />
       )}
 
       <PresetFormModal
@@ -96,40 +132,7 @@ export default function ProgramScreen() {
         onSubmit={handleCreatePreset}
         onClose={() => setPresetFormOpen(false)}
       />
-      <RuleEditorModal
-        visible={editor !== null}
-        initial={editor?.rule ?? null}
-        onSubmit={handleSubmitRule}
-        onDelete={editor?.rule ? handleDeleteRule : undefined}
-        onClose={() => setEditor(null)}
-      />
     </View>
-  );
-}
-
-function PresetList({
-  presets,
-  onOpen,
-  onNew,
-}: {
-  presets: Preset[];
-  onOpen: (id: string) => void;
-  onNew: () => void;
-}) {
-  return (
-    <>
-      <View style={styles.header}>
-        <Text style={styles.title}>Program</Text>
-        <Text style={styles.subtitle}>Presets you can pick from when you start a run.</Text>
-      </View>
-
-      <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-        {presets.map((preset) => (
-          <PresetCard key={preset.id} preset={preset} onPress={() => onOpen(preset.id)} />
-        ))}
-        <SecondaryButton icon="plus" label="New preset" onPress={onNew} />
-      </ScrollView>
-    </>
   );
 }
 
@@ -148,13 +151,12 @@ function PresetDetail({
 }) {
   function testPreset() {
     if (preset.rules.length === 0) return;
-    // Tangible preview until real audio lands: one buzz per rule.
     Vibration.vibrate(preset.rules.flatMap(() => [0, 250, 150]));
   }
 
   return (
     <>
-      <View style={styles.header}>
+      <View style={styles.detailHeader}>
         <View style={styles.detailTop}>
           <TouchableOpacity style={styles.back} onPress={onBack} activeOpacity={0.7} hitSlop={8}>
             <MaterialCommunityIcons name="chevron-left" size={22} color={colors.textMuted} />
@@ -188,6 +190,26 @@ function PresetDetail({
   );
 }
 
+function SegmentButton({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      style={[styles.segment, active && styles.segmentActive]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
 function SecondaryButton({
   icon,
   label,
@@ -212,7 +234,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
   },
-  header: {
+  centered: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  detailHeader: {
     marginBottom: spacing.lg,
   },
   detailTop: {
@@ -237,7 +263,32 @@ const styles = StyleSheet.create({
   subtitle: {
     ...typography.body,
     color: colors.textMuted,
-    marginTop: spacing.xs,
+  },
+  segmented: {
+    flexDirection: "row",
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.xs,
+    gap: spacing.xs,
+    marginTop: spacing.md,
+    marginBottom: spacing.md,
+  },
+  segment: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+    borderRadius: radius.sm,
+  },
+  segmentActive: {
+    backgroundColor: colors.primarySoft,
+  },
+  segmentText: {
+    ...typography.body,
+    fontWeight: "600",
+    color: colors.textMuted,
+  },
+  segmentTextActive: {
+    color: colors.primary,
   },
   list: {
     gap: spacing.md,

@@ -2,14 +2,17 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { colors, radius, spacing, typography } from "../theme";
 import { MOMENTS, RESPONSES, describeMoment, describeResponse } from "./catalog";
+import { useStore } from "./store";
 import { Rule } from "./types";
 
 /**
- * Renders one rule: the moment as a "When …" sentence, then each
- * response below it marked with an arrow to read as "→ do this".
+ * Renders one rule: the moment as a sentence, then each response below it
+ * marked with an arrow to read as "→ do this".
  */
 export default function RuleCard({ rule, onPress }: { rule: Rule; onPress?: () => void }) {
+  const { soundName } = useStore();
   const moment = MOMENTS[rule.moment.type];
+
   return (
     <TouchableOpacity
       style={styles.card}
@@ -19,7 +22,7 @@ export default function RuleCard({ rule, onPress }: { rule: Rule; onPress?: () =
     >
       <View style={styles.momentRow}>
         <MaterialCommunityIcons name={moment.icon} size={22} color={colors.primary} />
-        <Text style={styles.momentText}>{describeMoment(rule)}</Text>
+        <Text style={styles.momentText}>{describeMoment(rule.moment)}</Text>
       </View>
 
       <View style={styles.actions}>
@@ -35,7 +38,12 @@ export default function RuleCard({ rule, onPress }: { rule: Rule; onPress?: () =
               size={15}
               color={colors.textMuted}
             />
-            <Text style={styles.actionText}>{describeResponse(response)}</Text>
+            <Text style={styles.actionText}>
+              {describeResponse(
+                response,
+                response.kind === "sound" ? soundName(response.soundId) : undefined
+              )}
+            </Text>
           </View>
         ))}
       </View>
@@ -63,7 +71,6 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: spacing.xs,
-    // Indent responses under the moment text (icon width + row gap).
     paddingLeft: 22 + spacing.sm,
   },
   actionRow: {

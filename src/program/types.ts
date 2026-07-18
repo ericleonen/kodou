@@ -1,36 +1,28 @@
 /**
  * Data model for the Program feature.
  *
- * A Preset is a named collection of Rules. Each Rule pairs one
- * "critical moment" (a well-defined runtime event) with one or more
- * responses (a sound, spoken phrase, or vibration). Presets are just a
- * library — the runner picks which preset to use when a run starts, so
- * nothing here is "active".
+ * A Preset is a named collection of Rules. Each Rule pairs one critical
+ * moment (a well-defined runtime event, with its own typed parameters)
+ * with one or more responses. Presets are just a library — the runner
+ * picks which one to use when a run starts, so nothing here is "active".
  */
 
-export type MomentType =
-  | "slowing_down"
-  | "nearing_end"
-  | "stopped"
-  | "new_fastest"
-  | "every_split"
-  | "halfway"
-  | "milestone"
-  | "goal_reached";
+export type PaceUnit = "mi/min" | "km/min";
+export type ProximityUnit = "mi" | "km" | "m" | "min" | "sec";
 
-export type ResponseKind = "sound" | "speak" | "vibrate";
+/** The two supported critical moments, each carrying its own parameters. */
+export type CriticalMoment =
+  | { type: "slowing_down"; threshold: number; unit: PaceUnit }
+  | { type: "almost_done"; amount: number; unit: ProximityUnit };
 
-export interface CriticalMoment {
-  type: MomentType;
-  /** Human-readable qualifier, e.g. "by 30 sec/km" or "for 10s". */
-  detail?: string;
-}
+export type MomentType = CriticalMoment["type"];
 
-export interface RuleResponse {
-  kind: ResponseKind;
-  /** Sound name, spoken phrase, or vibration pattern label. */
-  value: string;
-}
+/** The two supported responses. */
+export type RuleResponse =
+  | { kind: "sound"; soundId: string }
+  | { kind: "vibrate"; times: number };
+
+export type ResponseKind = RuleResponse["kind"];
 
 export interface Rule {
   id: string;
@@ -43,4 +35,12 @@ export interface Preset {
   name: string;
   description?: string;
   rules: Rule[];
+}
+
+/** A user-uploaded audio file, stored locally on the device. */
+export interface Sound {
+  id: string;
+  name: string;
+  /** file:// URI inside the app's document directory. */
+  uri: string;
 }

@@ -20,7 +20,8 @@
       ]
     },
     "plugins": [
-      "expo-dev-client"
+      "expo-dev-client",
+      "expo-audio"
     ],
     "web": {
       "favicon": "./assets/favicon.png"
