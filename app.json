@@ -7,16 +7,21 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.kodou.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Kodou uses your location to measure your pace and distance while you run."
       }
     },
     "android": {
+      "package": "com.kodou.app",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION"
       ]
     },
+    "plugins": [
+      "expo-dev-client"
+    ],
     "web": {
       "favicon": "./assets/favicon.png"
     }
