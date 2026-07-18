@@ -43,7 +43,7 @@ export function describeMoment(moment: CriticalMoment): string {
 export function describeResponse(response: RuleResponse, soundName?: string): string {
   switch (response.kind) {
     case "sound":
-      return `Soundbite: ${soundName ?? "(deleted)"}`;
+      return `${soundName ?? "(deleted)"}`;
     case "vibrate":
       return `Vibrate ${response.times} ${response.times === 1 ? "time" : "times"}`;
   }

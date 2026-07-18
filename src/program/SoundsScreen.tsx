@@ -1,57 +1,107 @@
+import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useAudioPlayer } from "expo-audio";
+import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
+import CircularProgress from "../components/CircularProgress";
 import { colors, radius, spacing, typography } from "../theme";
 import { useStore } from "./store";
+import SoundEditorModal from "./SoundEditorModal";
+import { Sound } from "./types";
 
 /** Sounds tab: the library of uploaded audio the presets can play. */
 export default function SoundsScreen() {
-  const { sounds, addSound, deleteSound } = useStore();
-  const player = useAudioPlayer();
+  const { sounds, deleteSound } = useStore();
+  const player = useAudioPlayer(undefined, { updateInterval: 50 });
+  const status = useAudioPlayerStatus(player);
 
-  function preview(uri: string) {
-    player.replace(uri);
-    player.seekTo(0);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+
+  const active = sounds.find((s) => s.id === playingId) ?? null;
+
+  // Stop playback when it reaches the trim end.
+  useEffect(() => {
+    if (active && status.playing && status.currentTime >= active.end) {
+      player.pause();
+      setPlayingId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status.currentTime]);
+
+  async function toggle(sound: Sound) {
+    if (playingId === sound.id && status.playing) {
+      player.pause();
+      setPlayingId(null);
+      return;
+    }
+    if (playingId !== sound.id) player.replace(sound.uri);
+    await player.seekTo(sound.start);
     player.play();
+    setPlayingId(sound.id);
   }
 
-  return (
-    <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-      {sounds.length === 0 ? (
-        <Text style={styles.empty}>
-          No sounds yet. Add an audio file to use it in your presets.
-        </Text>
-      ) : (
-        sounds.map((sound) => (
-          <View key={sound.id} style={styles.row}>
-            <TouchableOpacity
-              style={styles.play}
-              onPress={() => preview(sound.uri)}
-              activeOpacity={0.7}
-              hitSlop={8}
-            >
-              <MaterialCommunityIcons name="play" size={20} color={colors.primary} />
-            </TouchableOpacity>
-            <Text style={styles.name} numberOfLines={1}>
-              {sound.name}
-            </Text>
-            <TouchableOpacity onPress={() => deleteSound(sound.id)} hitSlop={8}>
-              <MaterialCommunityIcons
-                name="trash-can-outline"
-                size={20}
-                color={colors.textMuted}
-              />
-            </TouchableOpacity>
-          </View>
-        ))
-      )}
+  const activeSpan = active ? Math.max(active.end - active.start, 0.0001) : 1;
+  const progress = active ? (status.currentTime - active.start) / activeSpan : 0;
 
-      <TouchableOpacity style={styles.addButton} onPress={addSound} activeOpacity={0.7}>
-        <MaterialCommunityIcons name="plus" size={20} color={colors.textMuted} />
-        <Text style={styles.addText}>Add sound</Text>
-      </TouchableOpacity>
-    </ScrollView>
+  return (
+    <>
+      <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+        {sounds.length === 0 ? (
+          <Text style={styles.empty}>
+            No sounds yet. Add an audio file to use it in your presets.
+          </Text>
+        ) : (
+          sounds.map((sound) => {
+            const isActive = sound.id === playingId;
+            return (
+              <View key={sound.id} style={styles.row}>
+                <TouchableOpacity onPress={() => toggle(sound)} activeOpacity={0.7}>
+                  <CircularProgress size={44} strokeWidth={3} progress={isActive ? progress : 0}>
+                    <MaterialCommunityIcons
+                      name={isActive && status.playing ? "pause" : "play"}
+                      size={20}
+                      color={colors.primary}
+                    />
+                  </CircularProgress>
+                </TouchableOpacity>
+                <View style={styles.info}>
+                  <Text style={styles.name} numberOfLines={1}>
+                    {sound.name}
+                  </Text>
+                  <Text style={styles.meta}>{formatTime(sound.end - sound.start)}</Text>
+                </View>
+                <TouchableOpacity onPress={() => deleteSound(sound.id)} hitSlop={8}>
+                  <MaterialCommunityIcons
+                    name="trash-can-outline"
+                    size={20}
+                    color={colors.textMuted}
+                  />
+                </TouchableOpacity>
+              </View>
+            );
+          })
+        )}
+
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setEditorOpen(true)}
+          activeOpacity={0.7}
+        >
+          <MaterialCommunityIcons name="plus" size={20} color={colors.textMuted} />
+          <Text style={styles.addText}>Add sound</Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      <SoundEditorModal visible={editorOpen} onClose={() => setEditorOpen(false)} />
+    </>
   );
+}
+
+function formatTime(seconds: number): string {
+  const total = Math.max(0, Math.round(seconds));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 const styles = StyleSheet.create({
@@ -73,19 +123,19 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: spacing.md,
   },
-  play: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.pill,
-    backgroundColor: colors.primarySoft,
-    alignItems: "center",
-    justifyContent: "center",
+  info: {
+    flex: 1,
+    gap: 2,
   },
   name: {
     ...typography.body,
     fontWeight: "600",
     color: colors.text,
-    flex: 1,
+  },
+  meta: {
+    ...typography.label,
+    color: colors.textFaint,
+    fontVariant: ["tabular-nums"],
   },
   addButton: {
     flexDirection: "row",

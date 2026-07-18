@@ -43,4 +43,10 @@ export interface Sound {
   name: string;
   /** file:// URI inside the app's document directory. */
   uri: string;
+  /** Full length of the file in seconds. */
+  duration: number;
+  /** Trim start in seconds (playback begins here). */
+  start: number;
+  /** Trim end in seconds (playback stops here). */
+  end: number;
 }

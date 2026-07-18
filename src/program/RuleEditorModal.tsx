@@ -15,6 +15,7 @@ import Dropdown from "../components/Dropdown";
 import { colors, radius, spacing, typography } from "../theme";
 import { MOMENTS, PACE_UNITS, PROXIMITY_UNITS, RESPONSES } from "./catalog";
 import { useStore } from "./store";
+import SoundEditorModal from "./SoundEditorModal";
 import {
   CriticalMoment,
   MomentType,
@@ -43,12 +44,14 @@ type Props = {
 
 /** Bottom-sheet editor for a single rule (moment + its responses). */
 export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, onClose }: Props) {
-  const { sounds, addSound } = useStore();
+  const { sounds } = useStore();
 
   const [momentType, setMomentType] = useState<MomentType | null>(null);
   const [amount, setAmount] = useState("");
   const [unit, setUnit] = useState<string>("");
   const [responses, setResponses] = useState<ResponseDraft[]>([]);
+  // Which response index (if any) is currently adding a new sound.
+  const [soundEditorFor, setSoundEditorFor] = useState<number | null>(null);
 
   // Seed the form from the rule being edited (or defaults) on open.
   useEffect(() => {
@@ -115,11 +118,6 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
         : { kind: "vibrate", times: Math.round(Number(r.times)) }
     );
     onSubmit({ moment, responses: built });
-  }
-
-  async function pickSoundFor(index: number) {
-    const sound = await addSound();
-    if (sound) patchResponse(index, { kind: "sound", soundId: sound.id });
   }
 
   const units = momentType === "slowing_down" ? PACE_UNITS : PROXIMITY_UNITS;
@@ -244,7 +242,7 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
                     options={soundOptions}
                     placeholder="Choose a soundbite"
                     onSelect={(soundId) => patchResponse(index, { kind: "sound", soundId })}
-                    footerAction={{ label: "Add a sound", onPress: () => pickSoundFor(index) }}
+                    footerAction={{ label: "Add a sound", onPress: () => setSoundEditorFor(index) }}
                   />
                 ) : (
                   <View style={styles.vibrateRow}>
@@ -272,6 +270,17 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
+
+      <SoundEditorModal
+        visible={soundEditorFor !== null}
+        onClose={() => setSoundEditorFor(null)}
+        onCreated={(sound) => {
+          if (soundEditorFor !== null) {
+            patchResponse(soundEditorFor, { kind: "sound", soundId: sound.id });
+          }
+          setSoundEditorFor(null);
+        }}
+      />
     </Modal>
   );
 }

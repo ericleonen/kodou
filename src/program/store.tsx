@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
 } from "react";
-import * as DocumentPicker from "expo-document-picker";
 import { reorderItems } from "react-native-reorderable-list";
 import { SEED_PRESETS } from "./mockPresets";
 import { deleteSoundFile, loadData, persistSoundFile, saveData } from "./storage";
@@ -17,6 +16,15 @@ let idCounter = 0;
 const genId = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${idCounter++}`;
 
 type RuleDraft = Omit<Rule, "id">;
+
+/** A finished sound ready to persist: metadata plus the picked file's URI. */
+export type SoundDraft = {
+  name: string;
+  sourceUri: string;
+  duration: number;
+  start: number;
+  end: number;
+};
 
 interface StoreValue {
   ready: boolean;
@@ -29,8 +37,8 @@ interface StoreValue {
   updateRule: (presetId: string, rule: Rule) => void;
   deleteRule: (presetId: string, ruleId: string) => void;
   reorderRules: (presetId: string, from: number, to: number) => void;
-  /** Opens the file picker, persists the chosen audio, returns the new sound. */
-  addSound: () => Promise<Sound | null>;
+  /** Persists a finished sound (copies its file locally) and returns it. */
+  createSound: (draft: SoundDraft) => Promise<Sound>;
   deleteSound: (id: string) => void;
   soundName: (id: string) => string | undefined;
 }
@@ -53,7 +61,15 @@ export function ProgramStoreProvider({ children }: { children: ReactNode }) {
     loadData().then((data) => {
       if (!active) return;
       setPresets(data?.presets ?? SEED_PRESETS);
-      setSounds(data?.sounds ?? []);
+      // Backfill trim fields for any sounds saved before they existed.
+      setSounds(
+        (data?.sounds ?? []).map((s) => ({
+          ...s,
+          duration: s.duration ?? 0,
+          start: s.start ?? 0,
+          end: s.end ?? s.duration ?? 0,
+        }))
+      );
       setReady(true);
     });
     return () => {
@@ -114,18 +130,17 @@ export function ProgramStoreProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
-  const addSound = useCallback(async (): Promise<Sound | null> => {
-    const result = await DocumentPicker.getDocumentAsync({
-      type: "audio/*",
-      copyToCacheDirectory: true,
-      multiple: false,
-    });
-    if (result.canceled || result.assets.length === 0) return null;
-
-    const asset = result.assets[0];
+  const createSound = useCallback(async (draft: SoundDraft): Promise<Sound> => {
     const id = genId("sound");
-    const uri = await persistSoundFile(asset.uri, id, asset.name);
-    const sound: Sound = { id, name: displayName(asset.name), uri };
+    const uri = await persistSoundFile(draft.sourceUri, id, draft.name);
+    const sound: Sound = {
+      id,
+      name: draft.name,
+      uri,
+      duration: draft.duration,
+      start: draft.start,
+      end: draft.end,
+    };
     setSounds((prev) => [...prev, sound]);
     return sound;
   }, []);
@@ -155,7 +170,7 @@ export function ProgramStoreProvider({ children }: { children: ReactNode }) {
         updateRule,
         deleteRule,
         reorderRules,
-        addSound,
+        createSound,
         deleteSound,
         soundName,
       }}
@@ -169,9 +184,4 @@ export function useStore() {
   const ctx = useContext(StoreContext);
   if (!ctx) throw new Error("useStore must be used within a ProgramStoreProvider");
   return ctx;
-}
-
-function displayName(fileName: string): string {
-  const dot = fileName.lastIndexOf(".");
-  return dot > 0 ? fileName.slice(0, dot) : fileName;
 }
