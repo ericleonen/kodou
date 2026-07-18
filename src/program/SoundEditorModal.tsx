@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
@@ -35,6 +36,9 @@ export default function SoundEditorModal({ visible, onClose, onCreated }: Props)
   const [start, setStart] = useState(0);
   const [end, setEnd] = useState(0);
   const [saving, setSaving] = useState(false);
+  // Becomes true once playback has actually entered the [start, end) window,
+  // so a stale currentTime right after seek can't stop it immediately.
+  const armed = useRef(false);
 
   // Reset each time the modal opens.
   useEffect(() => {
@@ -66,13 +70,17 @@ export default function SoundEditorModal({ visible, onClose, onCreated }: Props)
     }
   }, [status.isLoaded, status.duration, duration]);
 
-  // Stop preview playback when it reaches the trim end.
+  // Stop preview playback when it reaches the trim end. Only after we've
+  // seen the position inside the window (armed) to avoid a stale-time stop.
   useEffect(() => {
-    if (status.playing && end > 0 && status.currentTime >= end) {
+    if (!status.playing || end <= start) return;
+    if (status.currentTime < end - 0.1) armed.current = true;
+    if (armed.current && status.currentTime >= end) {
       player.pause();
+      armed.current = false;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status.currentTime]);
+  }, [status.currentTime, status.playing]);
 
   async function chooseFile() {
     const result = await DocumentPicker.getDocumentAsync({
@@ -90,11 +98,12 @@ export default function SoundEditorModal({ visible, onClose, onCreated }: Props)
     if (!name.trim()) setName(stripExtension(asset.name));
   }
 
-  function togglePreview() {
+  async function togglePreview() {
     if (status.playing) {
       player.pause();
     } else {
-      player.seekTo(start);
+      armed.current = false;
+      await player.seekTo(start);
       player.play();
     }
   }
@@ -113,6 +122,7 @@ export default function SoundEditorModal({ visible, onClose, onCreated }: Props)
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <GestureHandlerRootView style={styles.root}>
       <KeyboardAvoidingView
         style={styles.backdrop}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -155,6 +165,7 @@ export default function SoundEditorModal({ visible, onClose, onCreated }: Props)
                 low={start}
                 high={end}
                 minGap={0.2}
+                playback={status.playing ? status.currentTime : null}
                 onChange={(lo, hi) => {
                   setStart(lo);
                   setEnd(hi);
@@ -181,6 +192,7 @@ export default function SoundEditorModal({ visible, onClose, onCreated }: Props)
           ) : null}
         </View>
       </KeyboardAvoidingView>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
@@ -198,6 +210,9 @@ function formatTime(seconds: number): string {
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   backdrop: {
     flex: 1,
     justifyContent: "flex-end",

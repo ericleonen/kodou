@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
@@ -16,17 +16,23 @@ export default function SoundsScreen() {
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [playingId, setPlayingId] = useState<string | null>(null);
+  // See SoundEditorModal: guards against a stale currentTime stopping
+  // playback immediately after a seek.
+  const armed = useRef(false);
 
   const active = sounds.find((s) => s.id === playingId) ?? null;
 
-  // Stop playback when it reaches the trim end.
+  // Stop playback when it reaches the trim end (once actually inside the window).
   useEffect(() => {
-    if (active && status.playing && status.currentTime >= active.end) {
+    if (!active || !status.playing) return;
+    if (status.currentTime < active.end - 0.1) armed.current = true;
+    if (armed.current && status.currentTime >= active.end) {
       player.pause();
       setPlayingId(null);
+      armed.current = false;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status.currentTime]);
+  }, [status.currentTime, status.playing]);
 
   async function toggle(sound: Sound) {
     if (playingId === sound.id && status.playing) {
@@ -35,9 +41,10 @@ export default function SoundsScreen() {
       return;
     }
     if (playingId !== sound.id) player.replace(sound.uri);
+    armed.current = false;
+    setPlayingId(sound.id);
     await player.seekTo(sound.start);
     player.play();
-    setPlayingId(sound.id);
   }
 
   const activeSpan = active ? Math.max(active.end - active.start, 0.0001) : 1;

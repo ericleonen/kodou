@@ -19,6 +19,8 @@ type Props = {
   high: number;
   /** Minimum distance (in value units) kept between the two thumbs. */
   minGap?: number;
+  /** Current playback position (value units) to show as a playhead, or null. */
+  playback?: number | null;
   onChange: (low: number, high: number) => void;
 };
 
@@ -27,10 +29,22 @@ type Props = {
  * are initialized from props on layout and then self-driven, emitting
  * changes via onChange. Remount (via a `key`) to reset to new bounds.
  */
-export default function RangeSlider({ min, max, low, high, minGap = 0, onChange }: Props) {
+export default function RangeSlider({
+  min,
+  max,
+  low,
+  high,
+  minGap = 0,
+  playback = null,
+  onChange,
+}: Props) {
   const [width, setWidth] = useState(0);
   const range = Math.max(max - min, 0.0001);
   const gapPx = (minGap / range) * width;
+  const playheadX =
+    playback != null && width > 0
+      ? Math.max(0, Math.min(((playback - min) / range) * width, width))
+      : null;
 
   const lowX = useSharedValue(0);
   const highX = useSharedValue(0);
@@ -86,6 +100,9 @@ export default function RangeSlider({ min, max, low, high, minGap = 0, onChange 
       <View style={styles.row} onLayout={onLayout}>
         <View style={styles.track} />
         <Animated.View style={[styles.activeTrack, activeTrackStyle]} />
+        {playheadX != null ? (
+          <View pointerEvents="none" style={[styles.playhead, { left: playheadX - 1 }]} />
+        ) : null}
         <GestureDetector gesture={panLow}>
           <Animated.View style={[styles.thumb, lowThumbStyle]} />
         </GestureDetector>
@@ -115,6 +132,14 @@ const styles = StyleSheet.create({
     height: TRACK_HEIGHT,
     borderRadius: radius.pill,
     backgroundColor: colors.primary,
+  },
+  playhead: {
+    position: "absolute",
+    width: 2,
+    top: (ROW_HEIGHT - 20) / 2,
+    height: 20,
+    borderRadius: 1,
+    backgroundColor: colors.text,
   },
   thumb: {
     position: "absolute",
