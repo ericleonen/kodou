@@ -371,8 +371,11 @@ const styles = StyleSheet.create({
   },
   numberInput: {
     ...typography.body,
+    fontWeight: "700",
     color: colors.text,
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
     borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
@@ -431,7 +434,9 @@ const styles = StyleSheet.create({
   vibrateRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: spacing.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
   },
   vibrateLead: {
     ...typography.body,
