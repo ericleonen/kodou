@@ -24,6 +24,12 @@
     ],
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "edbd5978-41a1-452e-8126-96fda52b660e"
+      }
+    },
+    "owner": "ericleonen"
   }
 }
