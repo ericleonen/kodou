@@ -33,6 +33,23 @@ const DEFAULT_UNIT: Record<MomentType, string> = {
   almost_done: PROXIMITY_UNITS[1], // "km"
 };
 
+const MAX_VIBRATIONS = 10;
+
+/** Keeps only a positive decimal: digits and a single dot, no sign. */
+function sanitizeDecimal(text: string): string {
+  const cleaned = text.replace(/[^0-9.]/g, "");
+  const dot = cleaned.indexOf(".");
+  if (dot === -1) return cleaned;
+  return cleaned.slice(0, dot + 1) + cleaned.slice(dot + 1).replace(/\./g, "");
+}
+
+/** Keeps a whole number, capped at `max`; empty stays empty while editing. */
+function sanitizeInt(text: string, max: number): string {
+  const digits = text.replace(/[^0-9]/g, "");
+  if (digits === "") return "";
+  return String(Math.min(parseInt(digits, 10), max));
+}
+
 type Props = {
   visible: boolean;
   initial: { moment: CriticalMoment; responses: RuleResponse[] } | null;
@@ -98,13 +115,19 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
     setResponses((prev) => prev.map((r, i) => (i === index ? next : r)));
   }
 
+  function vibrateValid(times: string) {
+    const n = Number(times);
+    return times !== "" && Number.isInteger(n) && n >= 1 && n <= MAX_VIBRATIONS;
+  }
+
   const amountValid = amount.trim() !== "" && Number(amount) > 0;
   const responsesValid =
     responses.length > 0 &&
-    responses.every((r) =>
-      r.kind === "sound" ? r.soundId !== null : Number(r.times) >= 1
-    );
+    responses.every((r) => (r.kind === "sound" ? r.soundId !== null : vibrateValid(r.times)));
   const canSave = momentType !== null && amountValid && unit !== "" && responsesValid;
+
+  // Show an error only once the user has typed something invalid.
+  const amountError = amount.trim() !== "" && !amountValid;
 
   function save() {
     if (!canSave || momentType === null) return;
@@ -169,9 +192,9 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
                 </Text>
                 <View style={styles.paramRow}>
                   <TextInput
-                    style={styles.numberInput}
+                    style={[styles.numberInput, amountError && styles.inputError]}
                     value={amount}
-                    onChangeText={setAmount}
+                    onChangeText={(text) => setAmount(sanitizeDecimal(text))}
                     keyboardType="decimal-pad"
                     placeholder="0"
                     placeholderTextColor={colors.textFaint}
@@ -185,6 +208,9 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
                 </View>
                 {momentType === "almost_done" ? (
                   <Text style={styles.paramTrail}>of my goal</Text>
+                ) : null}
+                {amountError ? (
+                  <Text style={styles.errorText}>Enter a number greater than 0.</Text>
                 ) : null}
               </View>
             ) : null}
@@ -242,17 +268,28 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
                     footerAction={{ label: "Add a sound", onPress: () => setSoundEditorFor(index) }}
                   />
                 ) : (
-                  <View style={styles.vibrateRow}>
-                    <Text style={styles.vibrateLead}>Vibrate</Text>
-                    <TextInput
-                      style={styles.numberInput}
-                      value={response.times}
-                      onChangeText={(times) => patchResponse(index, { kind: "vibrate", times })}
-                      keyboardType="number-pad"
-                      placeholder="1"
-                      placeholderTextColor={colors.textFaint}
-                    />
-                    <Text style={styles.vibrateLead}>times</Text>
+                  <View>
+                    <View style={styles.vibrateRow}>
+                      <Text style={styles.vibrateLead}>Vibrate</Text>
+                      <TextInput
+                        style={[
+                          styles.numberInput,
+                          response.times !== "" && !vibrateValid(response.times) && styles.inputError,
+                        ]}
+                        value={response.times}
+                        onChangeText={(text) =>
+                          patchResponse(index, {
+                            kind: "vibrate",
+                            times: sanitizeInt(text, MAX_VIBRATIONS),
+                          })
+                        }
+                        keyboardType="number-pad"
+                        placeholder="1"
+                        placeholderTextColor={colors.textFaint}
+                      />
+                      <Text style={styles.vibrateLead}>times</Text>
+                    </View>
+                    <Text style={styles.hintText}>Between 1 and {MAX_VIBRATIONS}.</Text>
                   </View>
                 )}
               </View>
@@ -381,6 +418,22 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     minWidth: 72,
     textAlign: "center",
+  },
+  inputError: {
+    borderColor: colors.danger,
+  },
+  errorText: {
+    ...typography.label,
+    fontWeight: "500",
+    color: colors.danger,
+    marginTop: spacing.xs,
+  },
+  hintText: {
+    ...typography.label,
+    fontWeight: "500",
+    color: colors.textFaint,
+    marginTop: spacing.xs,
+    paddingHorizontal: spacing.sm,
   },
   unitDropdown: {
     flex: 1,
