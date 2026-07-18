@@ -16,6 +16,33 @@ export interface RunConfig {
   presetId: string | null;
 }
 
+export interface RunPoint {
+  latitude: number;
+  longitude: number;
+}
+
+export interface RunSample {
+  /** Seconds since the run started. */
+  t: number;
+  /** Smoothed speed in meters/second. */
+  speed: number;
+}
+
+/** The raw output of a completed run, before it's saved. */
+export interface RunRecording {
+  distance: number; // meters
+  duration: number; // seconds
+  path: RunPoint[];
+  samples: RunSample[];
+}
+
+export interface SavedRun extends RunRecording {
+  id: string;
+  date: string; // ISO timestamp
+  goal: Goal;
+  presetName: string | null;
+}
+
 export const DISTANCE_GOAL_UNITS: DistanceGoalUnit[] = ["mi", "km", "m"];
 export const TIME_GOAL_UNITS: TimeGoalUnit[] = ["min", "hr"];
 

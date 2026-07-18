@@ -10,13 +10,20 @@ import {
   goalDurationSeconds,
   metersToDistanceUnit,
   RunConfig,
+  RunRecording,
 } from "./types";
 
 /** The live tracking screen shown while a run is in progress. */
-export default function ActiveRun({ config, onStop }: { config: RunConfig; onStop: () => void }) {
+export default function ActiveRun({
+  config,
+  onFinish,
+}: {
+  config: RunConfig;
+  onFinish: (recording: RunRecording) => void;
+}) {
   const { presets } = useStore();
   const [paused, setPaused] = useState(false);
-  const { distance, elapsed, error } = useRunTracker(true, paused);
+  const { distance, elapsed, speed, error, getRecording } = useRunTracker(true, paused);
 
   const preset = presets.find((p) => p.id === config.presetId) ?? null;
   const programName = preset?.name ?? "No program";
@@ -27,9 +34,9 @@ export default function ActiveRun({ config, onStop }: { config: RunConfig; onSto
   const paceUnit = distanceUnit === "mi" ? "mi" : "km";
   const distanceInUnit = metersToDistanceUnit(distance, distanceUnit);
 
-  // Average pace (sec per mi/km); needs a little distance to be meaningful.
+  // Current (smoothed) pace: sec per mi/km from the smoothed speed.
   const paceMeters = paceUnit === "mi" ? 1609.344 : 1000;
-  const paceSec = distance > 20 ? elapsed / (distance / paceMeters) : null;
+  const paceSec = speed > 0.3 ? paceMeters / speed : null;
 
   // Goal progress + what's left.
   let progress = 0;
@@ -47,9 +54,14 @@ export default function ActiveRun({ config, onStop }: { config: RunConfig; onSto
   const clamped = Math.max(0, Math.min(1, progress));
   const goalReached = clamped >= 1;
 
+  function finishRun() {
+    const recording = getRecording();
+    onFinish({ distance, duration: elapsed, path: recording.path, samples: recording.samples });
+  }
+
   function handleFinish() {
     if (goalReached) {
-      onStop();
+      finishRun();
       return;
     }
     Alert.alert(
@@ -57,7 +69,7 @@ export default function ActiveRun({ config, onStop }: { config: RunConfig; onSto
       "You haven't reached your goal yet.",
       [
         { text: "Keep running", style: "cancel" },
-        { text: "Finish", style: "destructive", onPress: onStop },
+        { text: "Finish", style: "destructive", onPress: finishRun },
       ]
     );
   }

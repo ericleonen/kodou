@@ -33,6 +33,7 @@ export default function RunSetup({ onStart }: { onStart: (config: RunConfig) => 
 
   const units = kind === "distance" ? DISTANCE_GOAL_UNITS : TIME_GOAL_UNITS;
   const valid = value.trim() !== "" && Number(value) > 0;
+  const valueError = value.trim() !== "" && !valid;
 
   const presetOptions = useMemo(
     () => [
@@ -68,7 +69,7 @@ export default function RunSetup({ onStart }: { onStart: (config: RunConfig) => 
         </View>
         <View style={styles.goalRow}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, valueError && styles.inputError]}
             value={value}
             onChangeText={(t) => setValue(sanitizeDecimal(t))}
             keyboardType="decimal-pad"
@@ -82,6 +83,9 @@ export default function RunSetup({ onStart }: { onStart: (config: RunConfig) => 
             onSelect={(u) => setUnit(u as GoalUnit)}
           />
         </View>
+        {valueError ? (
+          <Text style={styles.errorText}>Enter a goal greater than 0.</Text>
+        ) : null}
       </View>
 
       <View style={styles.section}>
@@ -190,6 +194,15 @@ const styles = StyleSheet.create({
   },
   unitDropdown: {
     flex: 1,
+  },
+  inputError: {
+    borderWidth: 1,
+    borderColor: colors.danger,
+  },
+  errorText: {
+    ...typography.label,
+    fontWeight: "500",
+    color: colors.danger,
   },
   spacer: {
     flex: 1,
