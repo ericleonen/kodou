@@ -121,7 +121,7 @@ export default function ProgramScreen() {
       {tab === "presets" ? (
         <ReorderableList
           data={presets}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => item?.id ?? String(index)}
           onReorder={({ from, to }) => reorderPresets(from, to)}
           style={styles.flex}
           contentContainerStyle={styles.listContent}
@@ -207,7 +207,7 @@ function PresetDetail({
 
       <ReorderableList
         data={preset.rules}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item, index) => item?.id ?? String(index)}
         onReorder={({ from, to }) => onReorderRules(from, to)}
         style={styles.flex}
         contentContainerStyle={styles.listContent}
