@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { SafeAreaView, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { colors } from "../theme";
 import ProgramScreen from "../screens/ProgramScreen";
 import RunScreen from "../screens/RunScreen";
@@ -16,7 +17,7 @@ export default function RootNavigator() {
   const [active, setActive] = useState<TabKey>("run");
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
       <View style={styles.screen}>
         {active === "program" && <ProgramScreen />}
         {active === "run" && <RunScreen />}
