@@ -5,13 +5,13 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  Vibration,
   View,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ReorderableList, { useReorderableDrag } from "react-native-reorderable-list";
 import { colors, radius, spacing, typography } from "../theme";
 import { useStore } from "../program/store";
+import { useTestRunner } from "../program/useTestRunner";
 import { CriticalMoment, Preset, Rule, RuleResponse } from "../program/types";
 import PresetCard from "../program/PresetCard";
 import RuleCard from "../program/RuleCard";
@@ -160,11 +160,24 @@ function DraggablePreset({ preset, onOpen }: { preset: Preset; onOpen: (id: stri
   );
 }
 
-function DraggableRule({ rule, onEdit }: { rule: Rule; onEdit: (rule: Rule) => void }) {
+function DraggableRule({
+  rule,
+  onEdit,
+  highlighted,
+}: {
+  rule: Rule;
+  onEdit: (rule: Rule) => void;
+  highlighted: boolean;
+}) {
   const drag = useReorderableDrag();
   return (
     <View style={styles.itemSpacing}>
-      <RuleCard rule={rule} onPress={() => onEdit(rule)} onLongPress={drag} />
+      <RuleCard
+        rule={rule}
+        onPress={() => onEdit(rule)}
+        onLongPress={drag}
+        highlighted={highlighted}
+      />
     </View>
   );
 }
@@ -184,10 +197,8 @@ function PresetDetail({
   onEditRule: (rule: Rule) => void;
   onDelete: () => void;
 }) {
-  function testPreset() {
-    if (preset.rules.length === 0) return;
-    Vibration.vibrate(preset.rules.flatMap(() => [0, 250, 150]));
-  }
+  const { sounds } = useStore();
+  const { activeRuleId, running, start, stop } = useTestRunner(preset.rules, sounds);
 
   return (
     <>
@@ -212,11 +223,15 @@ function PresetDetail({
             {preset.rules.length > 0 ? (
               <TouchableOpacity
                 style={[styles.actionCircle, styles.testCircle]}
-                onPress={testPreset}
+                onPress={running ? stop : start}
                 activeOpacity={0.7}
-                accessibilityLabel="Test preset"
+                accessibilityLabel={running ? "Stop test" : "Test preset"}
               >
-                <MaterialCommunityIcons name="play" size={22} color={colors.success} />
+                <MaterialCommunityIcons
+                  name={running ? "stop" : "play"}
+                  size={22}
+                  color={colors.success}
+                />
               </TouchableOpacity>
             ) : null}
             <TouchableOpacity
@@ -233,6 +248,7 @@ function PresetDetail({
 
       <ReorderableList
         data={preset.rules}
+        extraData={activeRuleId}
         keyExtractor={(item, index) => item?.id ?? String(index)}
         onReorder={({ from, to }) => onReorderRules(from, to)}
         style={styles.flex}
@@ -241,7 +257,13 @@ function PresetDetail({
         ListEmptyComponent={
           <Text style={styles.empty}>No moments yet. Add one to start programming.</Text>
         }
-        renderItem={({ item }) => <DraggableRule rule={item} onEdit={onEditRule} />}
+        renderItem={({ item }) => (
+          <DraggableRule
+            rule={item}
+            onEdit={onEditRule}
+            highlighted={item.id === activeRuleId}
+          />
+        )}
       />
     </>
   );

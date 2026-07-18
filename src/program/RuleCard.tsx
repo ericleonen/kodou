@@ -13,17 +13,19 @@ export default function RuleCard({
   rule,
   onPress,
   onLongPress,
+  highlighted,
 }: {
   rule: Rule;
   onPress?: () => void;
   onLongPress?: () => void;
+  highlighted?: boolean;
 }) {
   const { soundName } = useStore();
   const moment = MOMENTS[rule.moment.type];
 
   return (
     <TouchableOpacity
-      style={styles.card}
+      style={[styles.card, highlighted && styles.cardHighlighted]}
       onPress={onPress}
       onLongPress={onLongPress}
       delayLongPress={200}
@@ -67,6 +69,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: spacing.md,
     gap: spacing.sm,
+    borderWidth: 1.5,
+    borderColor: "transparent",
+  },
+  cardHighlighted: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
   },
   momentRow: {
     flexDirection: "row",
