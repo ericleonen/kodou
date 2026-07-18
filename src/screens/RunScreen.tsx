@@ -1,11 +1,17 @@
-import ScreenTemplate from "../components/ScreenTemplate";
+import { useState } from "react";
+import ActiveRun from "../run/ActiveRun";
+import RunSetup from "../run/RunSetup";
+import { RunConfig } from "../run/types";
 
+/**
+ * Run tab. Shows the setup form until a run is started, then swaps to
+ * the live tracking screen until the run is ended.
+ */
 export default function RunScreen() {
-  return (
-    <ScreenTemplate
-      title="Run"
-      subtitle="Track your pace and distance in real time."
-      icon="run"
-    />
-  );
+  const [config, setConfig] = useState<RunConfig | null>(null);
+
+  if (config) {
+    return <ActiveRun config={config} onStop={() => setConfig(null)} />;
+  }
+  return <RunSetup onStart={setConfig} />;
 }
