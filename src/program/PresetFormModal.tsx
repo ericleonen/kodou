@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -10,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { colors, radius, spacing, typography } from "../theme";
+import { useKeyboardHeight } from "../hooks/useKeyboardHeight";
 
 type Props = {
   visible: boolean;
@@ -19,6 +18,7 @@ type Props = {
 
 /** Modal for naming a brand-new preset. */
 export default function PresetFormModal({ visible, onSubmit, onClose }: Props) {
+  const keyboardHeight = useKeyboardHeight();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
@@ -39,10 +39,7 @@ export default function PresetFormModal({ visible, onSubmit, onClose }: Props) {
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        style={styles.backdrop}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <View style={[styles.backdrop, { paddingBottom: keyboardHeight }]}>
         <View style={styles.sheet}>
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose} hitSlop={8}>
@@ -74,7 +71,7 @@ export default function PresetFormModal({ visible, onSubmit, onClose }: Props) {
             placeholderTextColor={colors.textFaint}
           />
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }

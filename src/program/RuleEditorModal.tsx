@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,6 +10,7 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Dropdown from "../components/Dropdown";
+import { useKeyboardHeight } from "../hooks/useKeyboardHeight";
 import { colors, radius, spacing, typography } from "../theme";
 import { MOMENTS, PACE_UNITS, PROXIMITY_UNITS, RESPONSES } from "./catalog";
 import { useStore } from "./store";
@@ -45,6 +44,7 @@ type Props = {
 /** Bottom-sheet editor for a single rule (moment + its responses). */
 export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, onClose }: Props) {
   const { sounds } = useStore();
+  const keyboardHeight = useKeyboardHeight();
 
   const [momentType, setMomentType] = useState<MomentType | null>(null);
   const [amount, setAmount] = useState("");
@@ -125,10 +125,7 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        style={styles.backdrop}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <View style={[styles.backdrop, { paddingBottom: keyboardHeight }]}>
         <View style={styles.sheet}>
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose} hitSlop={8}>
@@ -269,7 +266,7 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
             ) : null}
           </ScrollView>
         </View>
-      </KeyboardAvoidingView>
+      </View>
 
       <SoundEditorModal
         visible={soundEditorFor !== null}

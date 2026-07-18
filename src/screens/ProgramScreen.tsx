@@ -201,8 +201,34 @@ function PresetDetail({
             <MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
-        <Text style={styles.title}>{preset.name}</Text>
-        {preset.description ? <Text style={styles.subtitle}>{preset.description}</Text> : null}
+        <View style={styles.titleRow}>
+          <View style={styles.titleCol}>
+            <Text style={styles.title}>{preset.name}</Text>
+            {preset.description ? (
+              <Text style={styles.subtitle}>{preset.description}</Text>
+            ) : null}
+          </View>
+          <View style={styles.headerActions}>
+            {preset.rules.length > 0 ? (
+              <TouchableOpacity
+                style={[styles.actionCircle, styles.testCircle]}
+                onPress={testPreset}
+                activeOpacity={0.7}
+                accessibilityLabel="Test preset"
+              >
+                <MaterialCommunityIcons name="play" size={22} color={colors.success} />
+              </TouchableOpacity>
+            ) : null}
+            <TouchableOpacity
+              style={[styles.actionCircle, styles.addCircle]}
+              onPress={onAddRule}
+              activeOpacity={0.7}
+              accessibilityLabel="Add moment"
+            >
+              <MaterialCommunityIcons name="plus" size={24} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
 
       <ReorderableList
@@ -214,17 +240,6 @@ function PresetDetail({
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <Text style={styles.empty}>No moments yet. Add one to start programming.</Text>
-        }
-        ListFooterComponent={
-          <View style={styles.footer}>
-            <SecondaryButton icon="plus" label="Add moment" onPress={onAddRule} />
-            {preset.rules.length > 0 ? (
-              <TouchableOpacity style={styles.testButton} onPress={testPreset} activeOpacity={0.85}>
-                <MaterialCommunityIcons name="play" size={18} color={colors.primary} />
-                <Text style={styles.testText}>Test preset</Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
         }
         renderItem={({ item }) => <DraggableRule rule={item} onEdit={onEditRule} />}
       />
@@ -301,6 +316,33 @@ const styles = StyleSheet.create({
     ...typography.label,
     color: colors.textMuted,
   },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  titleCol: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  actionCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  testCircle: {
+    backgroundColor: "rgba(61, 214, 140, 0.14)",
+  },
+  addCircle: {
+    backgroundColor: colors.primarySoft,
+  },
   title: {
     ...typography.title,
     color: colors.text,
@@ -342,9 +384,6 @@ const styles = StyleSheet.create({
   itemSpacing: {
     marginBottom: spacing.md,
   },
-  footer: {
-    gap: spacing.md,
-  },
   empty: {
     ...typography.body,
     color: colors.textFaint,
@@ -366,19 +405,5 @@ const styles = StyleSheet.create({
     ...typography.body,
     fontWeight: "600",
     color: colors.textMuted,
-  },
-  testButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-    backgroundColor: colors.primarySoft,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-  },
-  testText: {
-    ...typography.body,
-    fontWeight: "700",
-    color: colors.primary,
   },
 });

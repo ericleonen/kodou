@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -14,6 +12,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import RangeSlider from "../components/RangeSlider";
+import { useKeyboardHeight } from "../hooks/useKeyboardHeight";
 import { colors, radius, spacing, typography } from "../theme";
 import { useStore } from "./store";
 import { Sound } from "./types";
@@ -27,6 +26,7 @@ type Props = {
 /** Modal to name, pick, trim, and preview a new sound before saving it. */
 export default function SoundEditorModal({ visible, onClose, onCreated }: Props) {
   const { createSound } = useStore();
+  const keyboardHeight = useKeyboardHeight();
   const player = useAudioPlayer(undefined, { updateInterval: 50 });
   const status = useAudioPlayerStatus(player);
 
@@ -123,10 +123,7 @@ export default function SoundEditorModal({ visible, onClose, onCreated }: Props)
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <GestureHandlerRootView style={styles.root}>
-      <KeyboardAvoidingView
-        style={styles.backdrop}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <View style={[styles.backdrop, { paddingBottom: keyboardHeight }]}>
         <View style={styles.sheet}>
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose} hitSlop={8}>
@@ -191,7 +188,7 @@ export default function SoundEditorModal({ visible, onClose, onCreated }: Props)
             <Text style={styles.loading}>Reading audio…</Text>
           ) : null}
         </View>
-      </KeyboardAvoidingView>
+      </View>
       </GestureHandlerRootView>
     </Modal>
   );
