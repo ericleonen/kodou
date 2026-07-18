@@ -7,7 +7,7 @@
  * picks which one to use when a run starts, so nothing here is "active".
  */
 
-export type PaceUnit = "mi/min" | "km/min";
+export type PaceUnit = "min/mi" | "min/km";
 export type ProximityUnit = "mi" | "km" | "m" | "min" | "sec";
 export type DistanceUnit = "mi" | "km" | "m";
 

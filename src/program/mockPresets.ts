@@ -13,7 +13,7 @@ export const SEED_PRESETS: Preset[] = [
     rules: [
       {
         id: "lr-1",
-        moment: { type: "slowing_down", threshold: 8, unit: "mi/min" },
+        moment: { type: "slowing_down", threshold: 8, unit: "min/mi" },
         responses: [{ kind: "vibrate", times: 2 }],
       },
       {

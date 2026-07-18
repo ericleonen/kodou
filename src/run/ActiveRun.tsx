@@ -1,4 +1,5 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useState } from "react";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { colors, radius, spacing, typography } from "../theme";
 import { useStore } from "../program/store";
@@ -14,7 +15,8 @@ import {
 /** The live tracking screen shown while a run is in progress. */
 export default function ActiveRun({ config, onStop }: { config: RunConfig; onStop: () => void }) {
   const { presets } = useStore();
-  const { distance, elapsed, error } = useRunTracker(true);
+  const [paused, setPaused] = useState(false);
+  const { distance, elapsed, error } = useRunTracker(true, paused);
 
   const preset = presets.find((p) => p.id === config.presetId) ?? null;
   const programName = preset?.name ?? "No program";
@@ -43,12 +45,31 @@ export default function ActiveRun({ config, onStop }: { config: RunConfig; onSto
     remainingLabel = `${formatDuration(Math.max(0, goalS - elapsed))} left`;
   }
   const clamped = Math.max(0, Math.min(1, progress));
+  const goalReached = clamped >= 1;
+
+  function handleFinish() {
+    if (goalReached) {
+      onStop();
+      return;
+    }
+    Alert.alert(
+      "Quit before reaching your goal?",
+      "You haven't reached your goal yet.",
+      [
+        { text: "Keep running", style: "cancel" },
+        { text: "Finish", style: "destructive", onPress: onStop },
+      ]
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <View style={styles.programPill}>
-        <MaterialCommunityIcons name="tune-vertical" size={14} color={colors.primary} />
-        <Text style={styles.programText}>{programName}</Text>
+      <View style={styles.topRow}>
+        <View style={styles.programPill}>
+          <MaterialCommunityIcons name="tune-vertical" size={14} color={colors.primary} />
+          <Text style={styles.programText}>{programName}</Text>
+        </View>
+        {paused ? <Text style={styles.pausedBadge}>Paused</Text> : null}
       </View>
 
       <View style={styles.metrics}>
@@ -75,10 +96,35 @@ export default function ActiveRun({ config, onStop }: { config: RunConfig; onSto
 
       <View style={styles.spacer} />
 
-      <TouchableOpacity style={styles.stopButton} onPress={onStop} activeOpacity={0.85}>
-        <MaterialCommunityIcons name="stop" size={20} color="#ffffff" />
-        <Text style={styles.stopText}>End run</Text>
-      </TouchableOpacity>
+      {paused ? (
+        <View style={styles.controlRow}>
+          <TouchableOpacity
+            style={[styles.control, styles.resumeButton]}
+            onPress={() => setPaused(false)}
+            activeOpacity={0.85}
+          >
+            <MaterialCommunityIcons name="play" size={20} color="#ffffff" />
+            <Text style={styles.controlText}>Resume</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.control, styles.finishButton]}
+            onPress={handleFinish}
+            activeOpacity={0.85}
+          >
+            <MaterialCommunityIcons name="flag-checkered" size={20} color={colors.danger} />
+            <Text style={[styles.controlText, styles.finishText]}>Finish</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity
+          style={[styles.control, styles.pauseButton]}
+          onPress={() => setPaused(true)}
+          activeOpacity={0.85}
+        >
+          <MaterialCommunityIcons name="pause" size={20} color={colors.text} />
+          <Text style={[styles.controlText, styles.pauseText]}>Pause</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -113,15 +159,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
   },
+  topRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   programPill: {
     flexDirection: "row",
     alignItems: "center",
-    alignSelf: "flex-start",
     gap: spacing.xs,
     backgroundColor: colors.primarySoft,
     borderRadius: radius.pill,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
+  },
+  pausedBadge: {
+    ...typography.label,
+    textTransform: "uppercase",
+    color: colors.textMuted,
+    fontWeight: "700",
   },
   programText: {
     ...typography.label,
@@ -193,20 +249,41 @@ const styles = StyleSheet.create({
   spacer: {
     flex: 1,
   },
-  stopButton: {
+  controlRow: {
+    flexDirection: "row",
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  control: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.sm,
-    backgroundColor: colors.primary,
     borderRadius: radius.pill,
     paddingVertical: spacing.md,
-    marginBottom: spacing.lg,
   },
-  stopText: {
+  controlText: {
     ...typography.body,
     fontWeight: "700",
     color: "#ffffff",
     fontSize: 17,
+  },
+  pauseButton: {
+    backgroundColor: colors.surfaceAlt,
+    marginBottom: spacing.lg,
+  },
+  pauseText: {
+    color: colors.text,
+  },
+  resumeButton: {
+    backgroundColor: colors.primary,
+  },
+  finishButton: {
+    borderWidth: 1.5,
+    borderColor: colors.danger,
+  },
+  finishText: {
+    color: colors.danger,
   },
 });

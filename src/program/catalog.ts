@@ -24,14 +24,14 @@ export const RESPONSES: Record<ResponseKind, { label: string; icon: IconName }> 
   vibrate: { label: "Buzz", icon: "vibrate" },
 };
 
-export const PACE_UNITS: PaceUnit[] = ["mi/min", "km/min"];
+export const PACE_UNITS: PaceUnit[] = ["min/mi", "min/km"];
 export const PROXIMITY_UNITS: ProximityUnit[] = ["mi", "km", "m", "min", "sec"];
 export const DISTANCE_UNITS: DistanceUnit[] = ["mi", "km", "m"];
 
 /** Full names for units, shown alongside the short form in pickers. */
 export const UNIT_NAMES: Record<string, string> = {
-  "mi/min": "miles per minute",
-  "km/min": "kilometers per minute",
+  "min/mi": "minutes per mile",
+  "min/km": "minutes per kilometer",
   mi: "miles",
   km: "kilometers",
   m: "meters",
@@ -43,7 +43,7 @@ export const UNIT_NAMES: Record<string, string> = {
 export function describeMoment(moment: CriticalMoment): string {
   switch (moment.type) {
     case "slowing_down":
-      return `Pace drops below ${moment.threshold} ${moment.unit}`;
+      return `Pace slower than ${moment.threshold} ${moment.unit}`;
     case "almost_done":
       return `Within ${moment.amount} ${moment.unit} of my goal`;
     case "split":

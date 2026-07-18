@@ -43,7 +43,7 @@ const DEFAULT_UNIT: Record<MomentType, string> = {
 };
 
 const PARAM_LEAD: Record<MomentType, string> = {
-  slowing_down: "Pace drops below",
+  slowing_down: "Pace slower than",
   almost_done: "Within",
   split: "Every",
 };

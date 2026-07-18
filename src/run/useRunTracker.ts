@@ -31,31 +31,46 @@ function haversine(a: Coord, b: Coord): number {
 
 /**
  * Tracks distance (from filtered GPS fixes) and elapsed time while
- * `active` is true. Starts fresh each time it becomes active.
+ * `active` is true. Starts fresh each time it becomes active. While
+ * `paused` is true, time and distance stop accumulating.
  */
-export function useRunTracker(active: boolean): RunStats {
+export function useRunTracker(active: boolean, paused: boolean): RunStats {
   const [distance, setDistance] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [speed, setSpeed] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const last = useRef<Coord | null>(null);
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
+
+  // On resume, drop the last coord so movement during the pause isn't counted.
+  useEffect(() => {
+    if (!paused) last.current = null;
+  }, [paused]);
 
   useEffect(() => {
     if (!active) return;
 
     let cancelled = false;
     let subscription: Location.LocationSubscription | null = null;
-    const startedAt = Date.now();
     last.current = null;
     setDistance(0);
     setElapsed(0);
     setSpeed(0);
     setError(null);
 
+    // Accumulate elapsed time only while not paused.
+    let accumulatedMs = 0;
+    let lastTick = Date.now();
     const timer = setInterval(() => {
-      setElapsed((Date.now() - startedAt) / 1000);
-    }, 1000);
+      const now = Date.now();
+      if (!pausedRef.current) {
+        accumulatedMs += now - lastTick;
+        setElapsed(accumulatedMs / 1000);
+      }
+      lastTick = now;
+    }, 250);
 
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -71,7 +86,7 @@ export function useRunTracker(active: boolean): RunStats {
           distanceInterval: 0,
         },
         (loc) => {
-          if (cancelled) return;
+          if (cancelled || pausedRef.current) return;
           const { latitude, longitude, accuracy, speed: s } = loc.coords;
           if (accuracy != null && accuracy > ACCURACY_LIMIT) return;
           setSpeed(s != null && s > 0 ? s : 0);
