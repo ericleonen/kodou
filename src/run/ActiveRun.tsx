@@ -112,13 +112,9 @@ export default function ActiveRun() {
           </TouchableOpacity>
         </View>
       ) : (
-        <TouchableOpacity
-          style={[styles.control, styles.pauseButton]}
-          onPress={pauseRun}
-          activeOpacity={0.85}
-        >
-          <MaterialCommunityIcons name="pause" size={20} color={c.text} />
-          <Text style={[styles.controlText, styles.pauseText]}>Pause</Text>
+        <TouchableOpacity style={styles.pauseButton} onPress={pauseRun} activeOpacity={0.85}>
+          <MaterialCommunityIcons name="pause" size={40} color={c.text} />
+          <Text style={styles.pauseLabel}>Pause</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -270,11 +266,18 @@ function useStyles() {
     fontSize: 17,
   },
   pauseButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
     backgroundColor: c.surfaceAlt,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
     marginBottom: spacing.lg,
   },
-  pauseText: {
-    color: c.text,
+  pauseLabel: {
+    ...typography.label,
+    textTransform: "uppercase",
+    color: c.textMuted,
   },
   resumeButton: {
     backgroundColor: c.primary,

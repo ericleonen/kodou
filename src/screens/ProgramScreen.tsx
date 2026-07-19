@@ -414,9 +414,12 @@ function useStyles() {
   listContent: {
     paddingBottom: spacing.xl,
   },
-  // Per-item spacing (a list can't rely on container `gap` for its rows).
+  // Per-item spacing. Uses paddingBottom (not margin) so the spacing is
+  // part of each cell's measured height — the reorderable list records
+  // itemSize from layout.height, and a margin gap it can't see desyncs
+  // its drop detection (which broke dragging items upward).
   itemSpacing: {
-    marginBottom: spacing.md,
+    paddingBottom: spacing.md,
   },
   empty: {
     ...typography.body,
