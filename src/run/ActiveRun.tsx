@@ -1,44 +1,34 @@
-import { useState } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { colors, radius, spacing, typography } from "../theme";
 import { useStore } from "../program/store";
-import { useRunTracker } from "./useRunTracker";
+import { finishRun, pauseRun, resumeRun, useRunEngine } from "./runEngine";
 import {
   DistanceGoalUnit,
   goalDistanceMeters,
   goalDurationSeconds,
   metersToDistanceUnit,
-  RunConfig,
-  RunRecording,
 } from "./types";
 
 /** The live tracking screen shown while a run is in progress. */
-export default function ActiveRun({
-  config,
-  onFinish,
-}: {
-  config: RunConfig;
-  onFinish: (recording: RunRecording) => void;
-}) {
+export default function ActiveRun() {
   const { presets } = useStore();
-  const [paused, setPaused] = useState(false);
-  const { distance, elapsed, speed, error, getRecording } = useRunTracker(true, paused);
+  const { config, distance, elapsed, speed, paused, error } = useRunEngine();
+
+  if (!config) return null;
 
   const preset = presets.find((p) => p.id === config.presetId) ?? null;
   const programName = preset?.name ?? "No program";
 
-  // Choose display units: follow the distance goal, else default to km.
   const distanceUnit: DistanceGoalUnit =
     config.goal.kind === "distance" ? (config.goal.unit as DistanceGoalUnit) : "km";
   const paceUnit = distanceUnit === "mi" ? "mi" : "km";
   const distanceInUnit = metersToDistanceUnit(distance, distanceUnit);
 
-  // Current (smoothed) pace: sec per mi/km from the smoothed speed.
+  // Current (smoothed) pace: seconds per mi/km from the smoothed speed.
   const paceMeters = paceUnit === "mi" ? 1609.344 : 1000;
   const paceSec = speed > 0.3 ? paceMeters / speed : null;
 
-  // Goal progress + what's left.
   let progress = 0;
   let remainingLabel = "";
   if (config.goal.kind === "distance") {
@@ -54,24 +44,15 @@ export default function ActiveRun({
   const clamped = Math.max(0, Math.min(1, progress));
   const goalReached = clamped >= 1;
 
-  function finishRun() {
-    const recording = getRecording();
-    onFinish({ distance, duration: elapsed, path: recording.path, samples: recording.samples });
-  }
-
   function handleFinish() {
     if (goalReached) {
       finishRun();
       return;
     }
-    Alert.alert(
-      "Quit before reaching your goal?",
-      "You haven't reached your goal yet.",
-      [
-        { text: "Keep running", style: "cancel" },
-        { text: "Finish", style: "destructive", onPress: finishRun },
-      ]
-    );
+    Alert.alert("Quit before reaching your goal?", "You haven't reached your goal yet.", [
+      { text: "Keep running", style: "cancel" },
+      { text: "Finish", style: "destructive", onPress: finishRun },
+    ]);
   }
 
   return (
@@ -112,7 +93,7 @@ export default function ActiveRun({
         <View style={styles.controlRow}>
           <TouchableOpacity
             style={[styles.control, styles.resumeButton]}
-            onPress={() => setPaused(false)}
+            onPress={resumeRun}
             activeOpacity={0.85}
           >
             <MaterialCommunityIcons name="play" size={20} color="#ffffff" />
@@ -130,7 +111,7 @@ export default function ActiveRun({
       ) : (
         <TouchableOpacity
           style={[styles.control, styles.pauseButton]}
-          onPress={() => setPaused(true)}
+          onPress={pauseRun}
           activeOpacity={0.85}
         >
           <MaterialCommunityIcons name="pause" size={20} color={colors.text} />
@@ -185,15 +166,15 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
   },
+  programText: {
+    ...typography.label,
+    color: colors.primary,
+  },
   pausedBadge: {
     ...typography.label,
     textTransform: "uppercase",
     color: colors.textMuted,
     fontWeight: "700",
-  },
-  programText: {
-    ...typography.label,
-    color: colors.primary,
   },
   metrics: {
     marginTop: spacing.xxl,

@@ -1,36 +1,39 @@
-import { useState } from "react";
 import { useStore } from "../program/store";
 import ActiveRun from "../run/ActiveRun";
 import RunSetup from "../run/RunSetup";
 import RunSummary from "../run/RunSummary";
-import { RunConfig, RunRecording } from "../run/types";
+import { resetRun, startRun, useRunEngine } from "../run/runEngine";
 
 /**
- * Run tab. Setup → live tracking → post-run summary, then back to setup.
+ * Run tab. Its screen is driven by the run engine's phase, so an active
+ * run keeps going (and stays on screen) even across tab switches.
  */
 export default function RunScreen() {
-  const { presets } = useStore();
-  const [config, setConfig] = useState<RunConfig | null>(null);
-  const [recording, setRecording] = useState<RunRecording | null>(null);
+  const { presets, sounds } = useStore();
+  const engine = useRunEngine();
 
-  if (config && recording) {
-    const presetName = presets.find((p) => p.id === config.presetId)?.name ?? null;
+  if (engine.phase === "summary" && engine.config && engine.recording) {
+    const presetName = presets.find((p) => p.id === engine.config!.presetId)?.name ?? null;
     return (
       <RunSummary
-        recording={recording}
-        goal={config.goal}
+        recording={engine.recording}
+        goal={engine.config.goal}
         presetName={presetName}
-        onDone={() => {
-          setRecording(null);
-          setConfig(null);
-        }}
+        onDone={resetRun}
       />
     );
   }
 
-  if (config) {
-    return <ActiveRun config={config} onFinish={setRecording} />;
+  if (engine.phase === "active" && engine.config) {
+    return <ActiveRun />;
   }
 
-  return <RunSetup onStart={setConfig} />;
+  return (
+    <RunSetup
+      onStart={(config) => {
+        const preset = presets.find((p) => p.id === config.presetId);
+        startRun(config, preset?.rules ?? [], sounds);
+      }}
+    />
+  );
 }

@@ -9,19 +9,32 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.kodou.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Kodou uses your location to measure your pace and distance while you run."
+        "UIBackgroundModes": ["location", "audio"]
       }
     },
     "android": {
       "package": "com.kodou.app",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "WAKE_LOCK"
       ]
     },
     "plugins": [
       "expo-dev-client",
-      "expo-audio"
+      "expo-audio",
+      [
+        "expo-location",
+        {
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true,
+          "locationWhenInUsePermission": "Kodou uses your location to measure your pace and distance while you run.",
+          "locationAlwaysAndWhenInUsePermission": "Kodou keeps tracking your run in the background so your stats and program keep working with the screen off."
+        }
+      ]
     ],
     "web": {
       "favicon": "./assets/favicon.png"
