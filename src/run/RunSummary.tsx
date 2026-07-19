@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import PaceChart from "../components/PaceChart";
 import RunPath from "../components/RunPath";
+import { MOMENTS } from "../program/catalog";
 import { colors, radius, spacing, typography } from "../theme";
 import { useRuns } from "./runsStore";
 import { formatAvgPace, formatDistance, formatDuration, paceUnitLabel, runDistanceUnit } from "./format";
@@ -27,6 +28,13 @@ export default function RunSummary({ recording, goal, presetName, onDone }: Prop
   const { saveRun } = useRuns();
   const unit = runDistanceUnit(goal);
   const paceUnit = paceUnitLabel(unit);
+
+  const pathMarkers = recording.events.map((e) => ({
+    icon: MOMENTS[e.type].icon,
+    latitude: e.latitude,
+    longitude: e.longitude,
+  }));
+  const paceMarkers = recording.events.map((e) => ({ icon: MOMENTS[e.type].icon, t: e.t }));
 
   function handleSave() {
     saveRun(recording, goal, presetName);
@@ -57,14 +65,16 @@ export default function RunSummary({ recording, goal, presetName, onDone }: Prop
         <Text style={styles.cardLabel}>Route</Text>
         <View style={styles.card}>
           <Measured height={220}>
-            {(w) => <RunPath path={recording.path} width={w} height={220} />}
+            {(w) => <RunPath path={recording.path} markers={pathMarkers} width={w} height={220} />}
           </Measured>
         </View>
 
         <Text style={styles.cardLabel}>Pace</Text>
         <View style={styles.card}>
           <Measured height={110}>
-            {(w) => <PaceChart samples={recording.samples} width={w} height={110} />}
+            {(w) => (
+              <PaceChart samples={recording.samples} markers={paceMarkers} width={w} height={110} />
+            )}
           </Measured>
         </View>
 

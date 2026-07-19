@@ -11,6 +11,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import PaceChart from "../components/PaceChart";
 import RunPath from "../components/RunPath";
+import { MOMENTS } from "../program/catalog";
 import { colors, radius, spacing, typography } from "../theme";
 import { useRuns } from "../run/runsStore";
 import {
@@ -53,6 +54,13 @@ function confirmDelete(run: SavedRun, deleteRun: (id: string) => void) {
 function RunCard({ run, onDelete }: { run: SavedRun; onDelete: () => void }) {
   const unit = runDistanceUnit(run.goal);
   const paceUnit = paceUnitLabel(unit);
+  const runEvents = run.events ?? [];
+  const pathMarkers = runEvents.map((e) => ({
+    icon: MOMENTS[e.type].icon,
+    latitude: e.latitude,
+    longitude: e.longitude,
+  }));
+  const paceMarkers = runEvents.map((e) => ({ icon: MOMENTS[e.type].icon, t: e.t }));
 
   return (
     <TouchableOpacity style={styles.card} onLongPress={onDelete} activeOpacity={0.9} delayLongPress={300}>
@@ -74,13 +82,15 @@ function RunCard({ run, onDelete }: { run: SavedRun; onDelete: () => void }) {
       <Measured height={160}>
         {(w) => (
           <View style={styles.route}>
-            <RunPath path={run.path} width={w} height={160} />
+            <RunPath path={run.path} markers={pathMarkers} width={w} height={160} />
           </View>
         )}
       </Measured>
 
       <Measured height={56}>
-        {(w) => <PaceChart samples={run.samples} width={w} height={56} strokeWidth={2} />}
+        {(w) => (
+          <PaceChart samples={run.samples} markers={paceMarkers} width={w} height={56} strokeWidth={2} />
+        )}
       </Measured>
 
       {run.presetName ? (

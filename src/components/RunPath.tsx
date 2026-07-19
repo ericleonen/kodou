@@ -1,12 +1,18 @@
 import { StyleSheet, Text, View } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Svg, { Circle, Path } from "react-native-svg";
 import { colors, typography } from "../theme";
 import { RunPoint } from "../run/types";
+
+type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
+
+export type PathMarker = { icon: IconName; latitude: number; longitude: number };
 
 type Props = {
   path: RunPoint[];
   width: number;
   height: number;
+  markers?: PathMarker[];
   stroke?: string;
   strokeWidth?: number;
   padding?: number;
@@ -21,6 +27,7 @@ export default function RunPath({
   path,
   width,
   height,
+  markers = [],
   stroke = colors.primary,
   strokeWidth = 3,
   padding = 10,
@@ -63,21 +70,35 @@ export default function RunPath({
   const startPt = projected[0];
   const endPt = projected[projected.length - 1];
 
+  const markerPoints = markers.map((m) => ({
+    icon: m.icon,
+    ...project({ x: m.longitude * k, y: m.latitude }),
+  }));
+
   return (
-    <Svg width={width} height={height}>
-      <Path
-        d={d}
-        stroke={stroke}
-        strokeWidth={strokeWidth}
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Circle cx={startPt.x} cy={startPt.y} r={strokeWidth + 1} fill={colors.success} />
-      <Circle cx={endPt.x} cy={endPt.y} r={strokeWidth + 1} fill={colors.primary} />
-    </Svg>
+    <View style={{ width, height }}>
+      <Svg width={width} height={height}>
+        <Path
+          d={d}
+          stroke={stroke}
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <Circle cx={startPt.x} cy={startPt.y} r={strokeWidth + 1} fill={colors.success} />
+        <Circle cx={endPt.x} cy={endPt.y} r={strokeWidth + 1} fill={colors.primary} />
+      </Svg>
+      {markerPoints.map((m, i) => (
+        <View key={i} style={[styles.marker, { left: m.x - MARKER / 2, top: m.y - MARKER / 2 }]}>
+          <MaterialCommunityIcons name={m.icon} size={13} color={colors.primary} />
+        </View>
+      ))}
+    </View>
   );
 }
+
+const MARKER = 24;
 
 const styles = StyleSheet.create({
   empty: {
@@ -87,5 +108,16 @@ const styles = StyleSheet.create({
   emptyText: {
     ...typography.label,
     color: colors.textFaint,
+  },
+  marker: {
+    position: "absolute",
+    width: MARKER,
+    height: MARKER,
+    borderRadius: MARKER / 2,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

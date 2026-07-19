@@ -8,6 +8,7 @@ import {
   goalDistanceMeters,
   goalDurationSeconds,
   RunConfig,
+  RunEvent,
   RunPoint,
   RunRecording,
   RunSample,
@@ -56,6 +57,7 @@ let accumulatedMs = 0; // elapsed time from prior (unpaused) segments
 let segmentStart = 0; // timestamp the current running segment began
 const path: RunPoint[] = [];
 const samples: RunSample[] = [];
+const events: RunEvent[] = [];
 
 // Per-rule trigger memory.
 type TriggerMemory = { fired?: boolean; armed?: boolean; lastSplit?: number };
@@ -91,6 +93,14 @@ function computeElapsed(now: number): number {
 let player: ReturnType<typeof createAudioPlayer> | null = null;
 
 function fire(rule: Rule) {
+  if (lastCoord) {
+    events.push({
+      type: rule.moment.type,
+      t: state.elapsed,
+      latitude: lastCoord.latitude,
+      longitude: lastCoord.longitude,
+    });
+  }
   for (const response of rule.responses) {
     if (response.kind === "vibrate") {
       const times = Math.max(1, response.times);
@@ -259,6 +269,7 @@ export async function startRun(config: RunConfig, ruleList: Rule[], soundList: S
   segmentStart = Date.now();
   path.length = 0;
   samples.length = 0;
+  events.length = 0;
   state = {
     phase: "active",
     config,
@@ -342,6 +353,7 @@ export function finishRun() {
     duration: state.elapsed,
     path: [...path],
     samples: [...samples],
+    events: [...events],
   };
   state = { ...state, phase: "summary", paused: false, recording };
   emit();
@@ -364,6 +376,7 @@ export function resetRun() {
   triggers = {};
   path.length = 0;
   samples.length = 0;
+  events.length = 0;
   emit();
 }
 

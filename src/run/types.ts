@@ -1,3 +1,5 @@
+import { MomentType } from "../program/types";
+
 /** A run's target: reach a distance, or run for a duration. */
 export type GoalKind = "distance" | "time";
 export type DistanceGoalUnit = "mi" | "km" | "m";
@@ -28,12 +30,21 @@ export interface RunSample {
   speed: number;
 }
 
+/** A moment that fired during a run, with where and when it happened. */
+export interface RunEvent {
+  type: MomentType;
+  t: number; // seconds since start
+  latitude: number;
+  longitude: number;
+}
+
 /** The raw output of a completed run, before it's saved. */
 export interface RunRecording {
   distance: number; // meters
   duration: number; // seconds
   path: RunPoint[];
   samples: RunSample[];
+  events: RunEvent[];
 }
 
 export interface SavedRun extends RunRecording {
