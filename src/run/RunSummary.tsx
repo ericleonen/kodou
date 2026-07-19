@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import {
   Alert,
   LayoutChangeEvent,
@@ -11,7 +11,7 @@ import {
 import PaceChart from "../components/PaceChart";
 import RunPath from "../components/RunPath";
 import { MOMENTS } from "../program/catalog";
-import { colors, radius, spacing, typography } from "../theme";
+import { useColors, radius, spacing, typography } from "../theme";
 import { useRuns } from "./runsStore";
 import { formatAvgPace, formatDistance, formatDuration, paceUnitLabel, runDistanceUnit } from "./format";
 import { Goal, RunRecording } from "./types";
@@ -26,6 +26,7 @@ type Props = {
 /** Post-run screen: review the route and pace, then save or discard. */
 export default function RunSummary({ recording, goal, presetName, onDone }: Props) {
   const { saveRun } = useRuns();
+  const styles = useStyles();
   const unit = runDistanceUnit(goal);
   const paceUnit = paceUnitLabel(unit);
 
@@ -90,6 +91,7 @@ export default function RunSummary({ recording, goal, presetName, onDone }: Prop
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
+  const styles = useStyles();
   return (
     <View style={styles.stat}>
       <Text style={styles.statLabel}>{label}</Text>
@@ -107,10 +109,13 @@ function Measured({ height, children }: { height: number; children: (w: number) 
   );
 }
 
-const styles = StyleSheet.create({
+function useStyles() {
+  const c = useColors();
+  return useMemo(() =>
+    StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
   },
   content: {
     paddingHorizontal: spacing.lg,
@@ -119,7 +124,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.title,
-    color: colors.text,
+    color: c.text,
   },
   stats: {
     flexDirection: "row",
@@ -132,28 +137,28 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     ...typography.label,
-    color: colors.textMuted,
+    color: c.textMuted,
     marginBottom: spacing.xs,
   },
   statValue: {
     ...typography.heading,
-    color: colors.text,
+    color: c.text,
     fontVariant: ["tabular-nums"],
   },
   cardLabel: {
     ...typography.label,
     textTransform: "uppercase",
-    color: colors.textMuted,
+    color: c.textMuted,
     marginTop: spacing.md,
     marginBottom: spacing.sm,
   },
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     padding: spacing.sm,
   },
   saveButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
     borderRadius: radius.pill,
     paddingVertical: spacing.md,
     alignItems: "center",
@@ -173,6 +178,7 @@ const styles = StyleSheet.create({
   discardText: {
     ...typography.body,
     fontWeight: "600",
-    color: colors.textMuted,
+    color: c.textMuted,
   },
-});
+    }), [c]);
+}

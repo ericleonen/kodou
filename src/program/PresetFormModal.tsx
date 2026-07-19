@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Modal,
   StyleSheet,
@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { colors, radius, spacing, typography } from "../theme";
+import { radius, spacing, typography, useColors } from "../theme";
 import { useKeyboardHeight } from "../hooks/useKeyboardHeight";
 
 type Props = {
@@ -18,6 +18,8 @@ type Props = {
 
 /** Modal for naming a brand-new preset. */
 export default function PresetFormModal({ visible, onSubmit, onClose }: Props) {
+  const c = useColors();
+  const styles = useStyles();
   const keyboardHeight = useKeyboardHeight();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -57,7 +59,7 @@ export default function PresetFormModal({ visible, onSubmit, onClose }: Props) {
             value={name}
             onChangeText={setName}
             placeholder="e.g. Tempo Run"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor={c.textFaint}
             autoFocus
             returnKeyType="next"
           />
@@ -68,7 +70,7 @@ export default function PresetFormModal({ visible, onSubmit, onClose }: Props) {
             value={description}
             onChangeText={setDescription}
             placeholder="What is this preset for?"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor={c.textFaint}
           />
         </View>
       </View>
@@ -76,14 +78,17 @@ export default function PresetFormModal({ visible, onSubmit, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function useStyles() {
+  const c = useColors();
+  return useMemo(() =>
+    StyleSheet.create({
   backdrop: {
     flex: 1,
     justifyContent: "flex-end",
     backgroundColor: "rgba(0,0,0,0.5)",
   },
   sheet: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
     padding: spacing.lg,
@@ -99,31 +104,32 @@ const styles = StyleSheet.create({
   title: {
     ...typography.heading,
     fontSize: 18,
-    color: colors.text,
+    color: c.text,
   },
   cancel: {
     ...typography.body,
-    color: colors.textMuted,
+    color: c.textMuted,
   },
   save: {
     ...typography.body,
     fontWeight: "700",
-    color: colors.primary,
+    color: c.primary,
   },
   saveDisabled: {
-    color: colors.textFaint,
+    color: c.textFaint,
   },
   label: {
     ...typography.label,
-    color: colors.textMuted,
+    color: c.textMuted,
     marginTop: spacing.sm,
   },
   input: {
     ...typography.body,
-    color: colors.text,
-    backgroundColor: colors.surfaceAlt,
+    color: c.text,
+    backgroundColor: c.surfaceAlt,
     borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
   },
-});
+    }), [c]);
+}

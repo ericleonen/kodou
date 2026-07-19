@@ -1,7 +1,8 @@
+import { useMemo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { colors, spacing, typography } from "../theme";
+import { spacing, typography, useColors } from "../theme";
 
 export type TabKey = "program" | "run" | "you";
 
@@ -24,11 +25,13 @@ type Props = {
 
 export default function TabBar({ active, onChange }: Props) {
   const insets = useSafeAreaInsets();
+  const c = useColors();
+  const styles = useStyles();
   return (
     <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
       {TABS.map((tab) => {
         const focused = tab.key === active;
-        const tint = focused ? colors.primary : colors.textMuted;
+        const tint = focused ? c.primary : c.textMuted;
         return (
           <TouchableOpacity
             key={tab.key}
@@ -48,22 +51,27 @@ export default function TabBar({ active, onChange }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  bar: {
-    flexDirection: "row",
-    backgroundColor: colors.surface,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
-    paddingTop: spacing.sm,
-    // Bottom padding comes from the device's safe-area inset (applied
-    // inline), so labels clear the home indicator / gesture bar.
-  },
-  tab: {
-    flex: 1,
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  label: {
-    ...typography.label,
-  },
-});
+function useStyles() {
+  const c = useColors();
+  return useMemo(
+    () =>
+      StyleSheet.create({
+        bar: {
+          flexDirection: "row",
+          backgroundColor: c.surface,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: c.border,
+          paddingTop: spacing.sm,
+        },
+        tab: {
+          flex: 1,
+          alignItems: "center",
+          gap: spacing.xs,
+        },
+        label: {
+          ...typography.label,
+        },
+      }),
+    [c]
+  );
+}

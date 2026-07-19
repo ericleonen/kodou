@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import {
   Alert,
   LayoutChangeEvent,
@@ -12,8 +12,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import PaceChart from "../components/PaceChart";
 import RunPath from "../components/RunPath";
 import { MOMENTS } from "../program/catalog";
-import { colors, radius, spacing, typography } from "../theme";
+import { radius, spacing, typography, useColors } from "../theme";
 import { useRuns } from "../run/runsStore";
+import SettingsScreen from "./SettingsScreen";
 import {
   formatAvgPace,
   formatDistance,
@@ -26,12 +27,26 @@ import { SavedRun } from "../run/types";
 
 /** You tab: locally saved runs, each shown with its route and pace. */
 export default function YouScreen() {
+  const c = useColors();
+  const styles = useStyles();
   const { runs, deleteRun } = useRuns();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  if (settingsOpen) {
+    return <SettingsScreen onBack={() => setSettingsOpen(false)} />;
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>You</Text>
-      <Text style={styles.subtitle}>Your saved runs.</Text>
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.title}>You</Text>
+          <Text style={styles.subtitle}>Your saved runs.</Text>
+        </View>
+        <TouchableOpacity onPress={() => setSettingsOpen(true)} hitSlop={8} accessibilityLabel="Settings">
+          <MaterialCommunityIcons name="cog-outline" size={24} color={c.textMuted} />
+        </TouchableOpacity>
+      </View>
 
       <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
         {runs.length === 0 ? (
@@ -52,6 +67,8 @@ function confirmDelete(run: SavedRun, deleteRun: (id: string) => void) {
 }
 
 function RunCard({ run, onDelete }: { run: SavedRun; onDelete: () => void }) {
+  const c = useColors();
+  const styles = useStyles();
   const unit = runDistanceUnit(run.goal);
   const paceUnit = paceUnitLabel(unit);
   const runEvents = run.events ?? [];
@@ -95,7 +112,7 @@ function RunCard({ run, onDelete }: { run: SavedRun; onDelete: () => void }) {
 
       {run.presetName ? (
         <View style={styles.programRow}>
-          <MaterialCommunityIcons name="tune-vertical" size={13} color={colors.textMuted} />
+          <MaterialCommunityIcons name="tune-vertical" size={13} color={c.textMuted} />
           <Text style={styles.programText}>{run.presetName}</Text>
         </View>
       ) : null}
@@ -112,22 +129,30 @@ function Measured({ height, children }: { height: number; children: (w: number) 
   );
 }
 
-const styles = StyleSheet.create({
+function useStyles() {
+  const c = useColors();
+  return useMemo(() =>
+    StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
   },
+  header: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    marginBottom: spacing.lg,
+  },
   title: {
     ...typography.title,
-    color: colors.text,
+    color: c.text,
   },
   subtitle: {
     ...typography.body,
-    color: colors.textMuted,
+    color: c.textMuted,
     marginTop: spacing.xs,
-    marginBottom: spacing.lg,
   },
   list: {
     gap: spacing.md,
@@ -135,12 +160,12 @@ const styles = StyleSheet.create({
   },
   empty: {
     ...typography.body,
-    color: colors.textFaint,
+    color: c.textFaint,
     textAlign: "center",
     paddingVertical: spacing.xl,
   },
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     padding: spacing.md,
     gap: spacing.sm,
@@ -152,11 +177,11 @@ const styles = StyleSheet.create({
   },
   cardDistance: {
     ...typography.heading,
-    color: colors.text,
+    color: c.text,
   },
   cardDate: {
     ...typography.label,
-    color: colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
   cardMeta: {
@@ -165,16 +190,16 @@ const styles = StyleSheet.create({
   cardMetaValue: {
     ...typography.body,
     fontWeight: "700",
-    color: colors.text,
+    color: c.text,
     fontVariant: ["tabular-nums"],
   },
   cardMetaLabel: {
     ...typography.label,
-    color: colors.textMuted,
+    color: c.textMuted,
     fontVariant: ["tabular-nums"],
   },
   route: {
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderRadius: radius.sm,
     overflow: "hidden",
   },
@@ -185,6 +210,7 @@ const styles = StyleSheet.create({
   },
   programText: {
     ...typography.label,
-    color: colors.textMuted,
+    color: c.textMuted,
   },
-});
+    }), [c]);
+}

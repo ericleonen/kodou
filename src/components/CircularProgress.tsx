@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
-import { colors } from "../theme";
+import { useColors } from "../theme";
 
 type Props = {
   size: number;
@@ -18,10 +18,13 @@ export default function CircularProgress({
   size,
   strokeWidth,
   progress,
-  color = colors.primary,
-  trackColor = colors.surfaceAlt,
+  color,
+  trackColor,
   children,
 }: Props) {
+  const c = useColors();
+  const stroke = color ?? c.primary;
+  const track = trackColor ?? c.surfaceAlt;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const clamped = Math.max(0, Math.min(1, progress));
@@ -34,7 +37,7 @@ export default function CircularProgress({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={trackColor}
+          stroke={track}
           strokeWidth={strokeWidth}
           fill="none"
         />
@@ -42,7 +45,7 @@ export default function CircularProgress({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={color}
+          stroke={stroke}
           strokeWidth={strokeWidth}
           fill="none"
           strokeLinecap="round"

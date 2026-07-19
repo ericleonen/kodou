@@ -1,15 +1,17 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import CircularProgress from "../components/CircularProgress";
-import { colors, radius, spacing, typography } from "../theme";
+import { radius, spacing, typography, useColors } from "../theme";
 import { useStore } from "./store";
 import SoundEditorModal from "./SoundEditorModal";
 import { Sound } from "./types";
 
 /** Sounds tab: the library of uploaded audio the presets can play. */
 export default function SoundsScreen() {
+  const c = useColors();
+  const styles = useStyles();
   const { sounds, deleteSound } = useStore();
   const player = useAudioPlayer(undefined, { updateInterval: 50 });
   const status = useAudioPlayerStatus(player);
@@ -67,7 +69,7 @@ export default function SoundsScreen() {
                     <MaterialCommunityIcons
                       name={isActive && status.playing ? "pause" : "play"}
                       size={20}
-                      color={colors.primary}
+                      color={c.primary}
                     />
                   </CircularProgress>
                 </TouchableOpacity>
@@ -81,7 +83,7 @@ export default function SoundsScreen() {
                   <MaterialCommunityIcons
                     name="trash-can-outline"
                     size={20}
-                    color={colors.textMuted}
+                    color={c.textMuted}
                   />
                 </TouchableOpacity>
               </View>
@@ -94,7 +96,7 @@ export default function SoundsScreen() {
           onPress={() => setEditorOpen(true)}
           activeOpacity={0.7}
         >
-          <MaterialCommunityIcons name="plus" size={20} color={colors.textMuted} />
+          <MaterialCommunityIcons name="plus" size={20} color={c.textMuted} />
           <Text style={styles.addText}>Add sound</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -111,14 +113,17 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-const styles = StyleSheet.create({
+function useStyles() {
+  const c = useColors();
+  return useMemo(() =>
+    StyleSheet.create({
   list: {
     gap: spacing.md,
     paddingBottom: spacing.xl,
   },
   empty: {
     ...typography.body,
-    color: colors.textFaint,
+    color: c.textFaint,
     textAlign: "center",
     paddingVertical: spacing.lg,
   },
@@ -126,7 +131,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     padding: spacing.md,
   },
@@ -137,11 +142,11 @@ const styles = StyleSheet.create({
   name: {
     ...typography.body,
     fontWeight: "600",
-    color: colors.text,
+    color: c.text,
   },
   meta: {
     ...typography.label,
-    color: colors.textFaint,
+    color: c.textFaint,
     fontVariant: ["tabular-nums"],
   },
   addButton: {
@@ -150,7 +155,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: spacing.sm,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     borderStyle: "dashed",
     borderRadius: radius.md,
     paddingVertical: spacing.md,
@@ -158,6 +163,7 @@ const styles = StyleSheet.create({
   addText: {
     ...typography.body,
     fontWeight: "600",
-    color: colors.textMuted,
+    color: c.textMuted,
   },
-});
+    }), [c]);
+}

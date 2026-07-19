@@ -1,6 +1,7 @@
+import { useMemo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { colors, radius, spacing, typography } from "../theme";
+import { radius, spacing, typography, useColors } from "../theme";
 import { MOMENTS, RESPONSES, describeMoment, describeResponse } from "./catalog";
 import { useStore } from "./store";
 import { Rule } from "./types";
@@ -20,6 +21,8 @@ export default function RuleCard({
   onLongPress?: () => void;
   highlighted?: boolean;
 }) {
+  const c = useColors();
+  const styles = useStyles();
   const { soundName } = useStore();
   const moment = MOMENTS[rule.moment.type];
 
@@ -33,7 +36,7 @@ export default function RuleCard({
       disabled={!onPress}
     >
       <View style={styles.momentRow}>
-        <MaterialCommunityIcons name={moment.icon} size={22} color={colors.primary} />
+        <MaterialCommunityIcons name={moment.icon} size={22} color={c.primary} />
         <Text style={styles.momentText}>{describeMoment(rule.moment)}</Text>
       </View>
 
@@ -43,12 +46,12 @@ export default function RuleCard({
             <MaterialCommunityIcons
               name="arrow-right-bottom"
               size={16}
-              color={colors.textFaint}
+              color={c.textFaint}
             />
             <MaterialCommunityIcons
               name={RESPONSES[response.kind].icon}
               size={15}
-              color={colors.textMuted}
+              color={c.textMuted}
             />
             <Text style={styles.actionText}>
               {describeResponse(
@@ -63,9 +66,12 @@ export default function RuleCard({
   );
 }
 
-const styles = StyleSheet.create({
+function useStyles() {
+  const c = useColors();
+  return useMemo(() =>
+    StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     padding: spacing.md,
     gap: spacing.sm,
@@ -73,8 +79,8 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   cardHighlighted: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primarySoft,
+    borderColor: c.primary,
+    backgroundColor: c.primarySoft,
   },
   momentRow: {
     flexDirection: "row",
@@ -84,7 +90,7 @@ const styles = StyleSheet.create({
   momentText: {
     ...typography.body,
     fontWeight: "600",
-    color: colors.text,
+    color: c.text,
     flex: 1,
   },
   actions: {
@@ -99,7 +105,8 @@ const styles = StyleSheet.create({
   actionText: {
     ...typography.body,
     fontSize: 14,
-    color: colors.textMuted,
+    color: c.textMuted,
     flex: 1,
   },
-});
+    }), [c]);
+}

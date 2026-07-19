@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Modal,
   ScrollView,
@@ -11,7 +11,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Dropdown from "../components/Dropdown";
 import { useKeyboardHeight } from "../hooks/useKeyboardHeight";
-import { colors, radius, spacing, typography } from "../theme";
+import { useColors, radius, spacing, typography } from "../theme";
 import {
   DISTANCE_UNITS,
   MOMENTS,
@@ -87,6 +87,8 @@ type Props = {
 
 /** Bottom-sheet editor for a single rule (moment + its responses). */
 export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, onClose }: Props) {
+  const c = useColors();
+  const styles = useStyles();
   const { sounds } = useStore();
   const keyboardHeight = useKeyboardHeight();
 
@@ -206,7 +208,7 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
                     <MaterialCommunityIcons
                       name={MOMENTS[type].icon}
                       size={16}
-                      color={on ? colors.primary : colors.textMuted}
+                      color={on ? c.primary : c.textMuted}
                     />
                     <Text style={[styles.momentChipText, on && styles.momentChipTextOn]}>
                       {MOMENTS[type].label}
@@ -226,7 +228,7 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
                     onChangeText={(text) => setAmount(sanitizeDecimal(text))}
                     keyboardType="decimal-pad"
                     placeholder="0"
-                    placeholderTextColor={colors.textFaint}
+                    placeholderTextColor={c.textFaint}
                   />
                   <Dropdown
                     style={styles.unitDropdown}
@@ -269,7 +271,7 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
                         <MaterialCommunityIcons
                           name={RESPONSES[kind].icon}
                           size={16}
-                          color={on ? colors.primary : colors.textMuted}
+                          color={on ? c.primary : c.textMuted}
                         />
                         <Text style={[styles.kindText, on && styles.kindTextOn]}>
                           {RESPONSES[kind].label}
@@ -283,7 +285,7 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
                       onPress={() => setResponses((prev) => prev.filter((_, i) => i !== index))}
                       hitSlop={8}
                     >
-                      <MaterialCommunityIcons name="close" size={16} color={colors.textMuted} />
+                      <MaterialCommunityIcons name="close" size={16} color={c.textMuted} />
                     </TouchableOpacity>
                   ) : null}
                 </View>
@@ -313,7 +315,7 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
                       }
                       keyboardType="number-pad"
                       placeholder="1"
-                      placeholderTextColor={colors.textFaint}
+                      placeholderTextColor={c.textFaint}
                     />
                     <Text style={styles.vibrateLead}>times</Text>
                   </View>
@@ -323,7 +325,7 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
 
             {onDelete ? (
               <TouchableOpacity style={styles.deleteBtn} onPress={onDelete} activeOpacity={0.8}>
-                <MaterialCommunityIcons name="trash-can-outline" size={18} color={colors.danger} />
+                <MaterialCommunityIcons name="trash-can-outline" size={18} color={c.danger} />
                 <Text style={styles.deleteText}>Delete moment</Text>
               </TouchableOpacity>
             ) : null}
@@ -345,7 +347,10 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
   );
 }
 
-const styles = StyleSheet.create({
+function useStyles() {
+  const c = useColors();
+  return useMemo(() =>
+    StyleSheet.create({
   backdrop: {
     flex: 1,
     justifyContent: "flex-end",
@@ -353,7 +358,7 @@ const styles = StyleSheet.create({
   },
   sheet: {
     maxHeight: "90%",
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
     padding: spacing.lg,
@@ -368,24 +373,24 @@ const styles = StyleSheet.create({
   title: {
     ...typography.heading,
     fontSize: 18,
-    color: colors.text,
+    color: c.text,
   },
   cancel: {
     ...typography.body,
-    color: colors.textMuted,
+    color: c.textMuted,
   },
   saveBtn: {
     ...typography.body,
     fontWeight: "700",
-    color: colors.primary,
+    color: c.primary,
   },
   disabled: {
-    color: colors.textFaint,
+    color: c.textFaint,
   },
   section: {
     ...typography.label,
     textTransform: "uppercase",
-    color: colors.textMuted,
+    color: c.textMuted,
     marginBottom: spacing.sm,
   },
   momentRow: {
@@ -399,21 +404,21 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
   },
   momentChipOn: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primarySoft,
+    borderColor: c.primary,
+    backgroundColor: c.primarySoft,
   },
   momentChipText: {
     ...typography.label,
     fontWeight: "500",
-    color: colors.textMuted,
+    color: c.textMuted,
   },
   momentChipTextOn: {
-    color: colors.text,
+    color: c.text,
   },
   paramBlock: {
     marginTop: spacing.md,
@@ -421,7 +426,7 @@ const styles = StyleSheet.create({
   },
   paramLead: {
     ...typography.body,
-    color: colors.text,
+    color: c.text,
   },
   paramRow: {
     flexDirection: "row",
@@ -430,15 +435,15 @@ const styles = StyleSheet.create({
   },
   paramTrail: {
     ...typography.body,
-    color: colors.text,
+    color: c.text,
   },
   numberInput: {
     ...typography.body,
     fontWeight: "700",
-    color: colors.text,
-    backgroundColor: colors.background,
+    color: c.text,
+    backgroundColor: c.background,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
@@ -446,12 +451,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   inputError: {
-    borderColor: colors.danger,
+    borderColor: c.danger,
   },
   errorText: {
     ...typography.label,
     fontWeight: "500",
-    color: colors.danger,
+    color: c.danger,
     marginTop: spacing.xs,
   },
   unitDropdown: {
@@ -465,11 +470,11 @@ const styles = StyleSheet.create({
   },
   addResponse: {
     ...typography.label,
-    color: colors.primary,
+    color: c.primary,
     marginBottom: spacing.sm,
   },
   responseCard: {
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderRadius: radius.md,
     padding: spacing.sm,
     gap: spacing.sm,
@@ -489,15 +494,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
   kindBtnOn: {
-    backgroundColor: colors.primarySoft,
+    backgroundColor: c.primarySoft,
   },
   kindText: {
     ...typography.label,
     fontWeight: "500",
-    color: colors.textMuted,
+    color: c.textMuted,
   },
   kindTextOn: {
-    color: colors.text,
+    color: c.text,
   },
   removeBtn: {
     marginLeft: "auto",
@@ -512,7 +517,7 @@ const styles = StyleSheet.create({
   },
   vibrateLead: {
     ...typography.body,
-    color: colors.text,
+    color: c.text,
   },
   deleteBtn: {
     flexDirection: "row",
@@ -525,6 +530,7 @@ const styles = StyleSheet.create({
   deleteText: {
     ...typography.body,
     fontWeight: "600",
-    color: colors.danger,
+    color: c.danger,
   },
-});
+    }), [c]);
+}

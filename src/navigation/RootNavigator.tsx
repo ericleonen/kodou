@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { colors } from "../theme";
+import { useColors } from "../theme";
 import ProgramScreen from "../screens/ProgramScreen";
 import RunScreen from "../screens/RunScreen";
 import YouScreen from "../screens/YouScreen";
@@ -15,6 +15,7 @@ import TabBar, { TabKey } from "./TabBar";
  */
 export default function RootNavigator() {
   const [active, setActive] = useState<TabKey>("run");
+  const styles = useStyles();
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
@@ -28,12 +29,19 @@ export default function RootNavigator() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  screen: {
-    flex: 1,
-  },
-});
+function useStyles() {
+  const c = useColors();
+  return useMemo(
+    () =>
+      StyleSheet.create({
+        safe: {
+          flex: 1,
+          backgroundColor: c.background,
+        },
+        screen: {
+          flex: 1,
+        },
+      }),
+    [c]
+  );
+}

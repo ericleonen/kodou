@@ -1,6 +1,7 @@
+import { useMemo } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { colors, radius, spacing, typography } from "../theme";
+import { radius, spacing, typography, useColors } from "../theme";
 import { useStore } from "../program/store";
 import { finishRun, pauseRun, resumeRun, useRunEngine } from "./runEngine";
 import {
@@ -12,6 +13,8 @@ import {
 
 /** The live tracking screen shown while a run is in progress. */
 export default function ActiveRun() {
+  const c = useColors();
+  const styles = useStyles();
   const { presets } = useStore();
   const { config, distance, elapsed, speed, paused, error } = useRunEngine();
 
@@ -59,7 +62,7 @@ export default function ActiveRun() {
     <View style={styles.container}>
       <View style={styles.topRow}>
         <View style={styles.programPill}>
-          <MaterialCommunityIcons name="tune-vertical" size={14} color={colors.primary} />
+          <MaterialCommunityIcons name="tune-vertical" size={14} color={c.primary} />
           <Text style={styles.programText}>{programName}</Text>
         </View>
         {paused ? <Text style={styles.pausedBadge}>Paused</Text> : null}
@@ -104,7 +107,7 @@ export default function ActiveRun() {
             onPress={handleFinish}
             activeOpacity={0.85}
           >
-            <MaterialCommunityIcons name="flag-checkered" size={20} color={colors.danger} />
+            <MaterialCommunityIcons name="flag-checkered" size={20} color={c.danger} />
             <Text style={[styles.controlText, styles.finishText]}>Finish</Text>
           </TouchableOpacity>
         </View>
@@ -114,7 +117,7 @@ export default function ActiveRun() {
           onPress={pauseRun}
           activeOpacity={0.85}
         >
-          <MaterialCommunityIcons name="pause" size={20} color={colors.text} />
+          <MaterialCommunityIcons name="pause" size={20} color={c.text} />
           <Text style={[styles.controlText, styles.pauseText]}>Pause</Text>
         </TouchableOpacity>
       )}
@@ -123,6 +126,7 @@ export default function ActiveRun() {
 }
 
 function Metric({ label, value, big }: { label: string; value: string; big?: boolean }) {
+  const styles = useStyles();
   return (
     <View style={big ? undefined : styles.metricCell}>
       <Text style={styles.metricLabel}>{label}</Text>
@@ -145,10 +149,13 @@ function formatDistance(value: number, unit: DistanceGoalUnit): string {
   return unit === "m" ? Math.round(value).toString() : value.toFixed(2);
 }
 
-const styles = StyleSheet.create({
+function useStyles() {
+  const c = useColors();
+  return useMemo(() =>
+    StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
   },
@@ -161,19 +168,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
-    backgroundColor: colors.primarySoft,
+    backgroundColor: c.primarySoft,
     borderRadius: radius.pill,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
   },
   programText: {
     ...typography.label,
-    color: colors.primary,
+    color: c.primary,
   },
   pausedBadge: {
     ...typography.label,
     textTransform: "uppercase",
-    color: colors.textMuted,
+    color: c.textMuted,
     fontWeight: "700",
   },
   metrics: {
@@ -189,12 +196,12 @@ const styles = StyleSheet.create({
   },
   metricLabel: {
     ...typography.label,
-    color: colors.textMuted,
+    color: c.textMuted,
     marginBottom: spacing.xs,
   },
   metricValue: {
     ...typography.title,
-    color: colors.text,
+    color: c.text,
     fontVariant: ["tabular-nums"],
   },
   metricValueBig: {
@@ -203,7 +210,7 @@ const styles = StyleSheet.create({
   },
   goalCard: {
     marginTop: spacing.xxl,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     padding: spacing.md,
     gap: spacing.sm,
@@ -216,27 +223,27 @@ const styles = StyleSheet.create({
   goalLabel: {
     ...typography.body,
     fontWeight: "600",
-    color: colors.text,
+    color: c.text,
   },
   goalRemaining: {
     ...typography.label,
-    color: colors.textMuted,
+    color: c.textMuted,
     fontVariant: ["tabular-nums"],
   },
   progressTrack: {
     height: 8,
     borderRadius: radius.pill,
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     overflow: "hidden",
   },
   progressFill: {
     height: 8,
     borderRadius: radius.pill,
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
   },
   error: {
     ...typography.body,
-    color: colors.danger,
+    color: c.danger,
     marginTop: spacing.lg,
   },
   spacer: {
@@ -263,20 +270,21 @@ const styles = StyleSheet.create({
     fontSize: 17,
   },
   pauseButton: {
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     marginBottom: spacing.lg,
   },
   pauseText: {
-    color: colors.text,
+    color: c.text,
   },
   resumeButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
   },
   finishButton: {
     borderWidth: 1.5,
-    borderColor: colors.danger,
+    borderColor: c.danger,
   },
   finishText: {
-    color: colors.danger,
+    color: c.danger,
   },
-});
+    }), [c]);
+}

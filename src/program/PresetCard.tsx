@@ -1,6 +1,7 @@
+import { useMemo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { colors, radius, spacing, typography } from "../theme";
+import { radius, spacing, typography, useColors } from "../theme";
 import { MOMENTS } from "./catalog";
 import { Preset } from "./types";
 
@@ -17,6 +18,8 @@ export default function PresetCard({
   onPress: () => void;
   onLongPress?: () => void;
 }) {
+  const c = useColors();
+  const styles = useStyles();
   const count = preset.rules.length;
   return (
     <TouchableOpacity
@@ -33,7 +36,7 @@ export default function PresetCard({
             <Text style={styles.description}>{preset.description}</Text>
           ) : null}
         </View>
-        <MaterialCommunityIcons name="chevron-right" size={22} color={colors.textFaint} />
+        <MaterialCommunityIcons name="chevron-right" size={22} color={c.textFaint} />
       </View>
 
       <View style={styles.footer}>
@@ -43,7 +46,7 @@ export default function PresetCard({
               key={rule.id}
               name={MOMENTS[rule.moment.type].icon}
               size={16}
-              color={colors.textMuted}
+              color={c.textMuted}
             />
           ))}
         </View>
@@ -55,9 +58,12 @@ export default function PresetCard({
   );
 }
 
-const styles = StyleSheet.create({
+function useStyles() {
+  const c = useColors();
+  return useMemo(() =>
+    StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     padding: spacing.md,
     gap: spacing.md,
@@ -72,12 +78,12 @@ const styles = StyleSheet.create({
   },
   name: {
     ...typography.heading,
-    color: colors.text,
+    color: c.text,
   },
   description: {
     ...typography.body,
     fontSize: 14,
-    color: colors.textMuted,
+    color: c.textMuted,
   },
   footer: {
     flexDirection: "row",
@@ -90,6 +96,7 @@ const styles = StyleSheet.create({
   },
   count: {
     ...typography.label,
-    color: colors.textFaint,
+    color: c.textFaint,
   },
-});
+    }), [c]);
+}

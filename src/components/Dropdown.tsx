@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Modal,
   Pressable,
@@ -8,7 +8,7 @@ import {
   View,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { colors, radius, spacing, typography } from "../theme";
+import { radius, spacing, typography, useColors } from "../theme";
 
 export type DropdownOption = { label: string; value: string; description?: string };
 
@@ -31,6 +31,8 @@ export default function Dropdown({
   footerAction,
   style,
 }: Props) {
+  const c = useColors();
+  const styles = useStyles();
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.value === value);
 
@@ -44,7 +46,7 @@ export default function Dropdown({
         <Text style={[styles.value, !selected && styles.placeholder]} numberOfLines={1}>
           {selected?.label ?? placeholder}
         </Text>
-        <MaterialCommunityIcons name="chevron-down" size={18} color={colors.textMuted} />
+        <MaterialCommunityIcons name="chevron-down" size={18} color={c.textMuted} />
       </TouchableOpacity>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
@@ -69,7 +71,7 @@ export default function Dropdown({
                     ) : null}
                   </View>
                   {on ? (
-                    <MaterialCommunityIcons name="check" size={18} color={colors.primary} />
+                    <MaterialCommunityIcons name="check" size={18} color={c.primary} />
                   ) : null}
                 </TouchableOpacity>
               );
@@ -84,7 +86,7 @@ export default function Dropdown({
                 }}
                 activeOpacity={0.7}
               >
-                <MaterialCommunityIcons name="plus" size={18} color={colors.primary} />
+                <MaterialCommunityIcons name="plus" size={18} color={c.primary} />
                 <Text style={styles.footerText}>{footerAction.label}</Text>
               </TouchableOpacity>
             ) : null}
@@ -95,24 +97,27 @@ export default function Dropdown({
   );
 }
 
-const styles = StyleSheet.create({
+function useStyles() {
+  const c = useColors();
+  return useMemo(() =>
+    StyleSheet.create({
   control: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: spacing.xs,
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
   },
   value: {
     ...typography.body,
-    color: colors.text,
+    color: c.text,
     flexShrink: 1,
   },
   placeholder: {
-    color: colors.textFaint,
+    color: c.textFaint,
   },
   backdrop: {
     flex: 1,
@@ -121,7 +126,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   menu: {
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderRadius: radius.md,
     overflow: "hidden",
   },
@@ -133,7 +138,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderBottomColor: c.border,
   },
   rowLabels: {
     flexDirection: "row",
@@ -144,15 +149,15 @@ const styles = StyleSheet.create({
   rowText: {
     ...typography.body,
     fontWeight: "700",
-    color: colors.text,
+    color: c.text,
   },
   rowTextOn: {
-    color: colors.primary,
+    color: c.primary,
   },
   rowDesc: {
     ...typography.label,
     fontWeight: "500",
-    color: colors.textMuted,
+    color: c.textMuted,
     flexShrink: 1,
   },
   footer: {
@@ -162,6 +167,7 @@ const styles = StyleSheet.create({
   footerText: {
     ...typography.body,
     fontWeight: "600",
-    color: colors.primary,
+    color: c.primary,
   },
-});
+    }), [c]);
+}

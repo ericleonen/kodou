@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ReorderableList, { useReorderableDrag } from "react-native-reorderable-list";
-import { colors, radius, spacing, typography } from "../theme";
+import { useColors, radius, spacing, typography } from "../theme";
 import { useStore } from "../program/store";
 import { useTestRunner } from "../program/useTestRunner";
 import { CriticalMoment, Preset, Rule, RuleResponse } from "../program/types";
@@ -29,6 +29,8 @@ type Tab = "presets" | "sounds";
  * and dragging. Local state instead of a router.
  */
 export default function ProgramScreen() {
+  const c = useColors();
+  const styles = useStyles();
   const store = useStore();
   const { presets, createPreset, deletePreset, reorderPresets, addRule, updateRule, deleteRule } =
     store;
@@ -82,7 +84,7 @@ export default function ProgramScreen() {
   if (!store.ready) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={c.primary} />
       </View>
     );
   }
@@ -152,6 +154,7 @@ export default function ProgramScreen() {
 }
 
 function DraggablePreset({ preset, onOpen }: { preset: Preset; onOpen: (id: string) => void }) {
+  const styles = useStyles();
   const drag = useReorderableDrag();
   return (
     <View style={styles.itemSpacing}>
@@ -169,6 +172,7 @@ function DraggableRule({
   onEdit: (rule: Rule) => void;
   highlighted: boolean;
 }) {
+  const styles = useStyles();
   const drag = useReorderableDrag();
   return (
     <View style={styles.itemSpacing}>
@@ -197,6 +201,8 @@ function PresetDetail({
   onEditRule: (rule: Rule) => void;
   onDelete: () => void;
 }) {
+  const c = useColors();
+  const styles = useStyles();
   const { sounds } = useStore();
   const { activeRuleId, running, start, stop } = useTestRunner(preset.rules, sounds);
 
@@ -205,11 +211,11 @@ function PresetDetail({
       <View style={styles.detailHeader}>
         <View style={styles.detailTop}>
           <TouchableOpacity style={styles.back} onPress={onBack} activeOpacity={0.7} hitSlop={8}>
-            <MaterialCommunityIcons name="chevron-left" size={22} color={colors.textMuted} />
+            <MaterialCommunityIcons name="chevron-left" size={22} color={c.textMuted} />
             <Text style={styles.backText}>Presets</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={onDelete} hitSlop={8}>
-            <MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.textMuted} />
+            <MaterialCommunityIcons name="trash-can-outline" size={20} color={c.textMuted} />
           </TouchableOpacity>
         </View>
         <View style={styles.titleRow}>
@@ -230,7 +236,7 @@ function PresetDetail({
                 <MaterialCommunityIcons
                   name={running ? "stop" : "play"}
                   size={22}
-                  color={colors.success}
+                  color={c.success}
                 />
               </TouchableOpacity>
             ) : null}
@@ -240,7 +246,7 @@ function PresetDetail({
               activeOpacity={0.7}
               accessibilityLabel="Add moment"
             >
-              <MaterialCommunityIcons name="plus" size={24} color={colors.primary} />
+              <MaterialCommunityIcons name="plus" size={24} color={c.primary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -278,6 +284,7 @@ function SegmentButton({
   active: boolean;
   onPress: () => void;
 }) {
+  const styles = useStyles();
   return (
     <TouchableOpacity
       style={[styles.segment, active && styles.segmentActive]}
@@ -298,18 +305,23 @@ function SecondaryButton({
   label: string;
   onPress: () => void;
 }) {
+  const c = useColors();
+  const styles = useStyles();
   return (
     <TouchableOpacity style={styles.secondary} onPress={onPress} activeOpacity={0.7}>
-      <MaterialCommunityIcons name={icon} size={20} color={colors.textMuted} />
+      <MaterialCommunityIcons name={icon} size={20} color={c.textMuted} />
       <Text style={styles.secondaryText}>{label}</Text>
     </TouchableOpacity>
   );
 }
 
-const styles = StyleSheet.create({
+function useStyles() {
+  const c = useColors();
+  return useMemo(() =>
+    StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
   },
@@ -336,7 +348,7 @@ const styles = StyleSheet.create({
   },
   backText: {
     ...typography.label,
-    color: colors.textMuted,
+    color: c.textMuted,
   },
   titleRow: {
     flexDirection: "row",
@@ -363,19 +375,19 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(61, 214, 140, 0.14)",
   },
   addCircle: {
-    backgroundColor: colors.primarySoft,
+    backgroundColor: c.primarySoft,
   },
   title: {
     ...typography.title,
-    color: colors.text,
+    color: c.text,
   },
   subtitle: {
     ...typography.body,
-    color: colors.textMuted,
+    color: c.textMuted,
   },
   segmented: {
     flexDirection: "row",
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     padding: spacing.xs,
     gap: spacing.xs,
@@ -389,15 +401,15 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   segmentActive: {
-    backgroundColor: colors.primarySoft,
+    backgroundColor: c.primarySoft,
   },
   segmentText: {
     ...typography.body,
     fontWeight: "600",
-    color: colors.textMuted,
+    color: c.textMuted,
   },
   segmentTextActive: {
-    color: colors.primary,
+    color: c.primary,
   },
   listContent: {
     paddingBottom: spacing.xl,
@@ -408,7 +420,7 @@ const styles = StyleSheet.create({
   },
   empty: {
     ...typography.body,
-    color: colors.textFaint,
+    color: c.textFaint,
     textAlign: "center",
     paddingVertical: spacing.lg,
   },
@@ -418,7 +430,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: spacing.sm,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.border,
     borderStyle: "dashed",
     borderRadius: radius.md,
     paddingVertical: spacing.md,
@@ -426,6 +438,7 @@ const styles = StyleSheet.create({
   secondaryText: {
     ...typography.body,
     fontWeight: "600",
-    color: colors.textMuted,
+    color: c.textMuted,
   },
-});
+    }), [c]);
+}

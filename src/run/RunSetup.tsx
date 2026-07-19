@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Dropdown from "../components/Dropdown";
-import { colors, radius, spacing, typography } from "../theme";
+import { useColors, radius, spacing, typography } from "../theme";
 import { useStore } from "../program/store";
 import {
   DISTANCE_GOAL_UNITS,
@@ -24,6 +24,8 @@ function sanitizeDecimal(text: string): string {
 
 /** The run setup screen: pick a goal and a program, then start. */
 export default function RunSetup({ onStart }: { onStart: (config: RunConfig) => void }) {
+  const c = useColors();
+  const styles = useStyles();
   const { presets } = useStore();
 
   const [kind, setKind] = useState<GoalKind>("distance");
@@ -74,7 +76,7 @@ export default function RunSetup({ onStart }: { onStart: (config: RunConfig) => 
             onChangeText={(t) => setValue(sanitizeDecimal(t))}
             keyboardType="decimal-pad"
             placeholder="0"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor={c.textFaint}
           />
           <Dropdown
             style={styles.unitDropdown}
@@ -116,6 +118,7 @@ function Segment({
   active: boolean;
   onPress: () => void;
 }) {
+  const styles = useStyles();
   return (
     <TouchableOpacity
       style={[styles.segment, active && styles.segmentActive]}
@@ -127,20 +130,23 @@ function Segment({
   );
 }
 
-const styles = StyleSheet.create({
+function useStyles() {
+  const c = useColors();
+  return useMemo(() =>
+    StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
   },
   title: {
     ...typography.title,
-    color: colors.text,
+    color: c.text,
   },
   subtitle: {
     ...typography.body,
-    color: colors.textMuted,
+    color: c.textMuted,
     marginTop: spacing.xs,
   },
   section: {
@@ -150,11 +156,11 @@ const styles = StyleSheet.create({
   label: {
     ...typography.label,
     textTransform: "uppercase",
-    color: colors.textMuted,
+    color: c.textMuted,
   },
   segmented: {
     flexDirection: "row",
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.md,
     padding: spacing.xs,
     gap: spacing.xs,
@@ -166,15 +172,15 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   segmentActive: {
-    backgroundColor: colors.primarySoft,
+    backgroundColor: c.primarySoft,
   },
   segmentText: {
     ...typography.body,
     fontWeight: "600",
-    color: colors.textMuted,
+    color: c.textMuted,
   },
   segmentTextActive: {
-    color: colors.primary,
+    color: c.primary,
   },
   goalRow: {
     flexDirection: "row",
@@ -184,8 +190,8 @@ const styles = StyleSheet.create({
   input: {
     ...typography.body,
     fontWeight: "700",
-    color: colors.text,
-    backgroundColor: colors.surfaceAlt,
+    color: c.text,
+    backgroundColor: c.surfaceAlt,
     borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
@@ -197,25 +203,25 @@ const styles = StyleSheet.create({
   },
   inputError: {
     borderWidth: 1,
-    borderColor: colors.danger,
+    borderColor: c.danger,
   },
   errorText: {
     ...typography.label,
     fontWeight: "500",
-    color: colors.danger,
+    color: c.danger,
   },
   spacer: {
     flex: 1,
   },
   startButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
     borderRadius: radius.pill,
     paddingVertical: spacing.md,
     alignItems: "center",
     marginBottom: spacing.lg,
   },
   startDisabled: {
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
   },
   startText: {
     ...typography.body,
@@ -223,4 +229,5 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 17,
   },
-});
+    }), [c]);
+}

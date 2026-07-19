@@ -1,7 +1,8 @@
+import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Svg, { Circle, Path } from "react-native-svg";
-import { colors, typography } from "../theme";
+import { typography, useColors } from "../theme";
 import { RunPoint } from "../run/types";
 
 type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
@@ -28,10 +29,13 @@ export default function RunPath({
   width,
   height,
   markers = [],
-  stroke = colors.primary,
+  stroke,
   strokeWidth = 3,
   padding = 10,
 }: Props) {
+  const c = useColors();
+  const styles = useStyles();
+  const strokeColor = stroke ?? c.primary;
   if (width <= 0 || height <= 0) return <View style={{ width, height }} />;
   if (path.length < 2) {
     return (
@@ -80,18 +84,18 @@ export default function RunPath({
       <Svg width={width} height={height}>
         <Path
           d={d}
-          stroke={stroke}
+          stroke={strokeColor}
           strokeWidth={strokeWidth}
           fill="none"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
-        <Circle cx={startPt.x} cy={startPt.y} r={strokeWidth + 1} fill={colors.success} />
-        <Circle cx={endPt.x} cy={endPt.y} r={strokeWidth + 1} fill={colors.primary} />
+        <Circle cx={startPt.x} cy={startPt.y} r={strokeWidth + 1} fill={c.success} />
+        <Circle cx={endPt.x} cy={endPt.y} r={strokeWidth + 1} fill={c.primary} />
       </Svg>
       {markerPoints.map((m, i) => (
         <View key={i} style={[styles.marker, { left: m.x - MARKER / 2, top: m.y - MARKER / 2 }]}>
-          <MaterialCommunityIcons name={m.icon} size={13} color={colors.primary} />
+          <MaterialCommunityIcons name={m.icon} size={13} color={c.primary} />
         </View>
       ))}
     </View>
@@ -100,24 +104,28 @@ export default function RunPath({
 
 const MARKER = 24;
 
-const styles = StyleSheet.create({
+function useStyles() {
+  const c = useColors();
+  return useMemo(() =>
+    StyleSheet.create({
   empty: {
     alignItems: "center",
     justifyContent: "center",
   },
   emptyText: {
     ...typography.label,
-    color: colors.textFaint,
+    color: c.textFaint,
   },
   marker: {
     position: "absolute",
     width: MARKER,
     height: MARKER,
     borderRadius: MARKER / 2,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1.5,
-    borderColor: colors.primary,
+    borderColor: c.primary,
     alignItems: "center",
     justifyContent: "center",
   },
-});
+    }), [c]);
+}

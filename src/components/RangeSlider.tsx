@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LayoutChangeEvent, StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -6,7 +6,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from "react-native-reanimated";
-import { colors, radius } from "../theme";
+import { radius, useColors } from "../theme";
 
 const THUMB = 24;
 const TRACK_HEIGHT = 4;
@@ -38,6 +38,7 @@ export default function RangeSlider({
   playback = null,
   onChange,
 }: Props) {
+  const styles = useStyles();
   const [width, setWidth] = useState(0);
   const range = Math.max(max - min, 0.0001);
   const gapPx = (minGap / range) * width;
@@ -114,7 +115,10 @@ export default function RangeSlider({
   );
 }
 
-const styles = StyleSheet.create({
+function useStyles() {
+  const c = useColors();
+  return useMemo(() =>
+    StyleSheet.create({
   outer: {
     paddingHorizontal: THUMB / 2,
   },
@@ -125,13 +129,13 @@ const styles = StyleSheet.create({
   track: {
     height: TRACK_HEIGHT,
     borderRadius: radius.pill,
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
   },
   activeTrack: {
     position: "absolute",
     height: TRACK_HEIGHT,
     borderRadius: radius.pill,
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
   },
   playhead: {
     position: "absolute",
@@ -139,7 +143,7 @@ const styles = StyleSheet.create({
     top: (ROW_HEIGHT - 20) / 2,
     height: 20,
     borderRadius: 1,
-    backgroundColor: colors.text,
+    backgroundColor: c.text,
   },
   thumb: {
     position: "absolute",
@@ -149,6 +153,7 @@ const styles = StyleSheet.create({
     borderRadius: THUMB / 2,
     backgroundColor: "#ffffff",
     borderWidth: 3,
-    borderColor: colors.primary,
+    borderColor: c.primary,
   },
-});
+    }), [c]);
+}

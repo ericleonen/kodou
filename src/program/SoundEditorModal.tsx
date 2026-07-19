@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Modal,
   StyleSheet,
@@ -13,7 +13,7 @@ import * as DocumentPicker from "expo-document-picker";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import RangeSlider from "../components/RangeSlider";
 import { useKeyboardHeight } from "../hooks/useKeyboardHeight";
-import { colors, radius, spacing, typography } from "../theme";
+import { useColors, radius, spacing, typography } from "../theme";
 import { useStore } from "./store";
 import { Sound } from "./types";
 
@@ -25,6 +25,8 @@ type Props = {
 
 /** Modal to name, pick, trim, and preview a new sound before saving it. */
 export default function SoundEditorModal({ visible, onClose, onCreated }: Props) {
+  const c = useColors();
+  const styles = useStyles();
   const { createSound } = useStore();
   const keyboardHeight = useKeyboardHeight();
   const player = useAudioPlayer(undefined, { updateInterval: 50 });
@@ -141,12 +143,12 @@ export default function SoundEditorModal({ visible, onClose, onCreated }: Props)
             value={name}
             onChangeText={setName}
             placeholder="e.g. Push harder"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor={c.textFaint}
           />
 
           <Text style={styles.label}>Audio file</Text>
           <TouchableOpacity style={styles.fileButton} onPress={chooseFile} activeOpacity={0.7}>
-            <MaterialCommunityIcons name="file-music-outline" size={20} color={colors.primary} />
+            <MaterialCommunityIcons name="file-music-outline" size={20} color={c.primary} />
             <Text style={styles.fileText} numberOfLines={1}>
               {sourceUri ? "Change file" : "Choose a file"}
             </Text>
@@ -177,7 +179,7 @@ export default function SoundEditorModal({ visible, onClose, onCreated }: Props)
                 <MaterialCommunityIcons
                   name={status.playing ? "pause" : "play"}
                   size={20}
-                  color={colors.primary}
+                  color={c.primary}
                 />
                 <Text style={styles.previewText}>
                   {status.playing ? "Stop" : "Test"} ({formatTime(Math.max(0, end - start))})
@@ -206,7 +208,10 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-const styles = StyleSheet.create({
+function useStyles() {
+  const c = useColors();
+  return useMemo(() =>
+    StyleSheet.create({
   root: {
     flex: 1,
   },
@@ -216,7 +221,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
   },
   sheet: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
     padding: spacing.lg,
@@ -231,30 +236,30 @@ const styles = StyleSheet.create({
   title: {
     ...typography.heading,
     fontSize: 18,
-    color: colors.text,
+    color: c.text,
   },
   cancel: {
     ...typography.body,
-    color: colors.textMuted,
+    color: c.textMuted,
   },
   saveBtn: {
     ...typography.body,
     fontWeight: "700",
-    color: colors.primary,
+    color: c.primary,
   },
   disabled: {
-    color: colors.textFaint,
+    color: c.textFaint,
   },
   label: {
     ...typography.label,
-    color: colors.textMuted,
+    color: c.textMuted,
     marginTop: spacing.md,
     marginBottom: spacing.sm,
   },
   input: {
     ...typography.body,
-    color: colors.text,
-    backgroundColor: colors.surfaceAlt,
+    color: c.text,
+    backgroundColor: c.surfaceAlt,
     borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
@@ -263,14 +268,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surfaceAlt,
     borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
   },
   fileText: {
     ...typography.body,
-    color: colors.text,
+    color: c.text,
     flex: 1,
   },
   timeRow: {
@@ -280,7 +285,7 @@ const styles = StyleSheet.create({
   },
   time: {
     ...typography.label,
-    color: colors.textMuted,
+    color: c.textMuted,
     fontVariant: ["tabular-nums"],
   },
   preview: {
@@ -288,7 +293,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.sm,
-    backgroundColor: colors.primarySoft,
+    backgroundColor: c.primarySoft,
     borderRadius: radius.md,
     paddingVertical: spacing.md,
     marginTop: spacing.lg,
@@ -296,11 +301,12 @@ const styles = StyleSheet.create({
   previewText: {
     ...typography.body,
     fontWeight: "700",
-    color: colors.primary,
+    color: c.primary,
   },
   loading: {
     ...typography.body,
-    color: colors.textMuted,
+    color: c.textMuted,
     marginTop: spacing.md,
   },
-});
+    }), [c]);
+}

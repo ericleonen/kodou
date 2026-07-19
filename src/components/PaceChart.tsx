@@ -1,7 +1,8 @@
+import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Svg, { Line, Path } from "react-native-svg";
-import { colors, typography } from "../theme";
+import { typography, useColors } from "../theme";
 import { RunSample } from "../run/types";
 
 type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
@@ -29,10 +30,13 @@ export default function PaceChart({
   width,
   height,
   markers = [],
-  stroke = colors.primary,
+  stroke,
   strokeWidth = 2,
   padding = 8,
 }: Props) {
+  const c = useColors();
+  const styles = useStyles();
+  const strokeColor = stroke ?? c.primary;
   if (width <= 0 || height <= 0) return <View style={{ width, height }} />;
 
   const pts = samples
@@ -81,14 +85,14 @@ export default function PaceChart({
               y1={padding + MARKER / 2}
               x2={x}
               y2={height - padding}
-              stroke={colors.border}
+              stroke={c.border}
               strokeWidth={1}
             />
           );
         })}
         <Path
           d={d}
-          stroke={stroke}
+          stroke={strokeColor}
           strokeWidth={strokeWidth}
           fill="none"
           strokeLinecap="round"
@@ -100,31 +104,35 @@ export default function PaceChart({
           key={`m${i}`}
           style={[styles.marker, { left: markerX(m.t) - MARKER / 2, top: 0 }]}
         >
-          <MaterialCommunityIcons name={m.icon} size={12} color={colors.primary} />
+          <MaterialCommunityIcons name={m.icon} size={12} color={c.primary} />
         </View>
       ))}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+function useStyles() {
+  const c = useColors();
+  return useMemo(() =>
+    StyleSheet.create({
   empty: {
     alignItems: "center",
     justifyContent: "center",
   },
   emptyText: {
     ...typography.label,
-    color: colors.textFaint,
+    color: c.textFaint,
   },
   marker: {
     position: "absolute",
     width: MARKER,
     height: MARKER,
     borderRadius: MARKER / 2,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1.5,
-    borderColor: colors.primary,
+    borderColor: c.primary,
     alignItems: "center",
     justifyContent: "center",
   },
-});
+    }), [c]);
+}
