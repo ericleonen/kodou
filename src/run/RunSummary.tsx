@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import PaceChart from "../components/PaceChart";
-import RunPath from "../components/RunPath";
+import RunMap from "../components/RunMap";
 import { MOMENTS } from "../program/catalog";
 import { useColors, radius, spacing, typography } from "../theme";
 import { useRuns } from "./runsStore";
@@ -30,11 +30,6 @@ export default function RunSummary({ recording, goal, presetName, onDone }: Prop
   const unit = runDistanceUnit(goal);
   const paceUnit = paceUnitLabel(unit);
 
-  const pathMarkers = recording.events.map((e) => ({
-    icon: MOMENTS[e.type].icon,
-    latitude: e.latitude,
-    longitude: e.longitude,
-  }));
   const paceMarkers = recording.events.map((e) => ({ icon: MOMENTS[e.type].icon, t: e.t }));
 
   function handleSave() {
@@ -64,10 +59,8 @@ export default function RunSummary({ recording, goal, presetName, onDone }: Prop
         </View>
 
         <Text style={styles.cardLabel}>Route</Text>
-        <View style={styles.card}>
-          <Measured height={220}>
-            {(w) => <RunPath path={recording.path} markers={pathMarkers} width={w} height={220} />}
-          </Measured>
+        <View style={styles.mapCard}>
+          <RunMap path={recording.path} style={StyleSheet.absoluteFill} />
         </View>
 
         <Text style={styles.cardLabel}>Pace</Text>
@@ -151,6 +144,12 @@ function useStyles() {
     color: c.textMuted,
     marginTop: spacing.md,
     marginBottom: spacing.sm,
+  },
+  mapCard: {
+    height: 260,
+    borderRadius: radius.md,
+    overflow: "hidden",
+    backgroundColor: c.surfaceAlt,
   },
   card: {
     backgroundColor: c.surface,

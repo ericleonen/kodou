@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import RunMap from "../components/RunMap";
 import { radius, spacing, typography, useColors } from "../theme";
 import { useStore } from "../program/store";
 import { finishRun, pauseRun, resumeRun, useRunEngine } from "./runEngine";
@@ -90,7 +91,9 @@ export default function ActiveRun() {
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <View style={styles.spacer} />
+      <View style={styles.mapWrap}>
+        <RunMap live style={StyleSheet.absoluteFill} />
+      </View>
 
       {paused ? (
         <View style={styles.controlRow}>
@@ -242,8 +245,13 @@ function useStyles() {
     color: c.danger,
     marginTop: spacing.lg,
   },
-  spacer: {
+  mapWrap: {
     flex: 1,
+    marginTop: spacing.lg,
+    marginBottom: spacing.lg,
+    borderRadius: radius.md,
+    overflow: "hidden",
+    backgroundColor: c.surfaceAlt,
   },
   controlRow: {
     flexDirection: "row",

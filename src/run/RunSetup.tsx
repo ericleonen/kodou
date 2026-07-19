@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Dropdown from "../components/Dropdown";
+import RunMap from "../components/RunMap";
 import { useColors, radius, spacing, typography } from "../theme";
 import { useStore } from "../program/store";
 import {
@@ -95,7 +96,9 @@ export default function RunSetup({ onStart }: { onStart: (config: RunConfig) => 
         <Dropdown value={presetId} options={presetOptions} onSelect={setPresetId} />
       </View>
 
-      <View style={styles.spacer} />
+      <View style={styles.mapWrap}>
+        <RunMap live style={StyleSheet.absoluteFill} />
+      </View>
 
       <TouchableOpacity
         style={[styles.startButton, !valid && styles.startDisabled]}
@@ -210,8 +213,13 @@ function useStyles() {
     fontWeight: "500",
     color: c.danger,
   },
-  spacer: {
+  mapWrap: {
     flex: 1,
+    marginTop: spacing.xl,
+    marginBottom: spacing.lg,
+    borderRadius: radius.md,
+    overflow: "hidden",
+    backgroundColor: c.surfaceAlt,
   },
   startButton: {
     backgroundColor: c.primary,

@@ -35,6 +35,12 @@
           "locationWhenInUsePermission": "Kodou uses your location to measure your pace and distance while you run.",
           "locationAlwaysAndWhenInUsePermission": "Kodou keeps tracking your run in the background so your stats and program keep working with the screen off."
         }
+      ],
+      [
+        "react-native-maps",
+        {
+          "androidGoogleMapsApiKey": "YOUR_ANDROID_GOOGLE_MAPS_API_KEY"
+        }
       ]
     ],
     "web": {
