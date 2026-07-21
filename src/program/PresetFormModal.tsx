@@ -7,8 +7,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Animated, { SlideInDown } from "react-native-reanimated";
-import { fonts, motion, radius, spacing, typography, useColors } from "../theme";
+import SheetView from "../components/SheetView";
+import { fonts, radius, spacing, typography, useColors } from "../theme";
 import { useKeyboardHeight } from "../hooks/useKeyboardHeight";
 
 type Props = {
@@ -43,7 +43,7 @@ export default function PresetFormModal({ visible, onSubmit, onClose }: Props) {
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <View style={[styles.backdrop, { paddingBottom: keyboardHeight }]}>
-        <Animated.View style={styles.sheet} entering={SlideInDown.duration(motion.base)}>
+        <SheetView visible={visible} style={styles.sheet}>
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose} hitSlop={8}>
               <Text style={styles.cancel}>Cancel</Text>
@@ -73,7 +73,7 @@ export default function PresetFormModal({ visible, onSubmit, onClose }: Props) {
             placeholder="What is this preset for?"
             placeholderTextColor={c.textFaint}
           />
-        </Animated.View>
+        </SheetView>
       </View>
     </Modal>
   );

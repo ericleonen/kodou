@@ -10,10 +10,10 @@ import {
   View,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import Animated, { SlideInDown } from "react-native-reanimated";
 import Dropdown from "../components/Dropdown";
+import SheetView from "../components/SheetView";
 import { useKeyboardHeight } from "../hooks/useKeyboardHeight";
-import { fonts, motion, useColors, radius, spacing, typography } from "../theme";
+import { fonts, useColors, radius, spacing, typography } from "../theme";
 import {
   DISTANCE_UNITS,
   MOMENTS,
@@ -190,7 +190,7 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
       onShow={() => Keyboard.dismiss()}
     >
       <View style={[styles.backdrop, { paddingBottom: keyboardHeight }]}>
-        <Animated.View style={styles.sheet} entering={SlideInDown.duration(motion.base)}>
+        <SheetView visible={visible} style={styles.sheet}>
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose} hitSlop={8}>
               <Text style={styles.cancel}>Cancel</Text>
@@ -338,7 +338,7 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
               </TouchableOpacity>
             ) : null}
           </ScrollView>
-        </Animated.View>
+        </SheetView>
       </View>
 
       <SoundEditorModal

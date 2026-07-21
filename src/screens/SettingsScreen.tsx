@@ -154,7 +154,7 @@ export default function SettingsScreen() {
           <Divider />
           <ToggleRow
             label="Lower other audio"
-            hint="Duck music while a cue plays"
+            hint="Quiet music when cues play"
             value={s.duckAudio}
             onValueChange={(duckAudio) => s.update({ duckAudio })}
           />

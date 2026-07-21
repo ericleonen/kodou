@@ -8,13 +8,13 @@ import {
   View,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import Animated, { SlideInDown } from "react-native-reanimated";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import RangeSlider from "../components/RangeSlider";
+import SheetView from "../components/SheetView";
 import { useKeyboardHeight } from "../hooks/useKeyboardHeight";
-import { fonts, motion, useColors, radius, spacing, typography } from "../theme";
+import { fonts, useColors, radius, spacing, typography } from "../theme";
 import { useStore } from "./store";
 import { Sound } from "./types";
 
@@ -127,7 +127,7 @@ export default function SoundEditorModal({ visible, onClose, onCreated }: Props)
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <GestureHandlerRootView style={styles.root}>
       <View style={[styles.backdrop, { paddingBottom: keyboardHeight }]}>
-        <Animated.View style={styles.sheet} entering={SlideInDown.duration(motion.base)}>
+        <SheetView visible={visible} style={styles.sheet}>
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose} hitSlop={8}>
               <Text style={styles.cancel}>Cancel</Text>
@@ -190,7 +190,7 @@ export default function SoundEditorModal({ visible, onClose, onCreated }: Props)
           ) : sourceUri ? (
             <Text style={styles.loading}>Reading audio…</Text>
           ) : null}
-        </Animated.View>
+        </SheetView>
       </View>
       </GestureHandlerRootView>
     </Modal>

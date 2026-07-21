@@ -66,56 +66,54 @@ export default function RunSetup({ onStart }: { onStart: (config: RunConfig) => 
 
   return (
     <View style={styles.container}>
-      <View style={[styles.section, styles.firstSection]}>
-        <Text style={styles.label}>Goal</Text>
-        <SegmentedControl
-          value={kind}
-          onChange={selectKind}
-          options={[
-            { label: "Distance", value: "distance" },
-            { label: "Time", value: "time" },
-          ]}
-        />
-        <View style={styles.goalRow}>
-          <TextInput
-            style={[styles.input, valueError && styles.inputError]}
-            value={value}
-            onChangeText={(t) => setValue(sanitizeDecimal(t))}
-            keyboardType="decimal-pad"
-            placeholder="0"
-            placeholderTextColor={c.textFaint}
+      <RunMap live style={StyleSheet.absoluteFill} mapPadding={{ top: 300, bottom: 90 }} />
+
+      <View style={styles.overlay} pointerEvents="box-none">
+        <View style={styles.panel}>
+          <Text style={styles.label}>Goal</Text>
+          <SegmentedControl
+            value={kind}
+            onChange={selectKind}
+            options={[
+              { label: "Distance", value: "distance" },
+              { label: "Time", value: "time" },
+            ]}
           />
-          <Dropdown
-            style={styles.unitDropdown}
-            value={unit}
-            options={units.map((u) => ({ label: u, value: u, description: GOAL_UNIT_NAMES[u] }))}
-            onSelect={(u) => setUnit(u as GoalUnit)}
-          />
+          <View style={styles.goalRow}>
+            <TextInput
+              style={[styles.input, valueError && styles.inputError]}
+              value={value}
+              onChangeText={(t) => setValue(sanitizeDecimal(t))}
+              keyboardType="decimal-pad"
+              placeholder="0"
+              placeholderTextColor={c.textFaint}
+            />
+            <Dropdown
+              style={styles.unitDropdown}
+              value={unit}
+              options={units.map((u) => ({ label: u, value: u, description: GOAL_UNIT_NAMES[u] }))}
+              onSelect={(u) => setUnit(u as GoalUnit)}
+            />
+          </View>
+          {valueError ? (
+            <Text style={styles.errorText}>Enter a goal greater than 0.</Text>
+          ) : null}
+
+          <Text style={[styles.label, styles.programLabel]}>Program</Text>
+          <Dropdown value={presetId} options={presetOptions} onSelect={setPresetId} />
         </View>
-        {valueError ? (
-          <Text style={styles.errorText}>Enter a goal greater than 0.</Text>
-        ) : null}
-      </View>
 
-      <View style={styles.section}>
-        <Text style={styles.label}>Program</Text>
-        <Dropdown value={presetId} options={presetOptions} onSelect={setPresetId} />
+        <SlideIn>
+          <PressableScale
+            style={[styles.startButton, !valid && styles.startDisabled]}
+            onPress={start}
+            disabled={!valid}
+            haptic={haptics.medium}
+          >
+            <Text style={styles.startText}>Start run</Text>
+          </PressableScale>
+        </SlideIn>
       </View>
-
-      <View style={styles.mapWrap}>
-        <RunMap live style={StyleSheet.absoluteFill} />
-      </View>
-
-      <SlideIn>
-        <PressableScale
-          style={[styles.startButton, !valid && styles.startDisabled]}
-          onPress={start}
-          disabled={!valid}
-          haptic={haptics.medium}
-        >
-          <Text style={styles.startText}>Start run</Text>
-        </PressableScale>
-      </SlideIn>
     </View>
   );
 }
@@ -126,22 +124,32 @@ function useStyles() {
     StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: c.background,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.xl,
+    backgroundColor: c.surfaceAlt,
   },
-  section: {
-    marginTop: spacing.xl,
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
+  },
+  panel: {
+    backgroundColor: c.overlay,
+    borderRadius: radius.md,
+    padding: spacing.md,
     gap: spacing.sm,
-  },
-  firstSection: {
-    marginTop: spacing.sm,
   },
   label: {
     ...typography.label,
     textTransform: "uppercase",
     color: c.textMuted,
+  },
+  programLabel: {
+    marginTop: spacing.sm,
   },
   goalRow: {
     flexDirection: "row",
@@ -170,14 +178,6 @@ function useStyles() {
     ...typography.label,
     fontFamily: fonts.medium,
     color: c.danger,
-  },
-  mapWrap: {
-    flex: 1,
-    marginTop: spacing.xl,
-    marginBottom: spacing.lg,
-    borderRadius: radius.md,
-    overflow: "hidden",
-    backgroundColor: c.surfaceAlt,
   },
   startButton: {
     backgroundColor: c.primary,
