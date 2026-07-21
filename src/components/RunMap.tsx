@@ -11,6 +11,8 @@ type Props = {
   live?: boolean;
   /** A recorded path to draw as a polyline. */
   path?: RunPoint[];
+  /** Inset (px) that keeps the followed location clear of overlays. */
+  mapPadding?: { top?: number; right?: number; bottom?: number; left?: number };
 };
 
 /** Computes a region that frames a path with a little padding. */
@@ -34,7 +36,7 @@ function regionForPath(path: RunPoint[]): Region {
  * recorded path. On Android this is Google Maps (needs an API key); on
  * iOS it falls back to Apple Maps.
  */
-export default function RunMap({ style, live, path = [] }: Props) {
+export default function RunMap({ style, live, path = [], mapPadding }: Props) {
   const c = useColors();
   const mapRef = useRef<MapView>(null);
   const [region, setRegion] = useState<Region | null>(null);
@@ -88,6 +90,14 @@ export default function RunMap({ style, live, path = [] }: Props) {
       ref={mapRef}
       style={style}
       initialRegion={region}
+      mapPadding={
+        mapPadding && {
+          top: mapPadding.top ?? 0,
+          right: mapPadding.right ?? 0,
+          bottom: mapPadding.bottom ?? 0,
+          left: mapPadding.left ?? 0,
+        }
+      }
       showsUserLocation={!!live}
       followsUserLocation={!!live}
       showsMyLocationButton={false}

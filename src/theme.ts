@@ -22,6 +22,8 @@ export interface Colors {
   textFaint: string;
   danger: string;
   success: string;
+  /** Translucent panel background for floating overlays (e.g. over a map). */
+  overlay: string;
 }
 
 export const darkColors: Colors = {
@@ -37,6 +39,7 @@ export const darkColors: Colors = {
   textFaint: "#5A5A63",
   danger: "#FF6B6B",
   success: "#3DD68C",
+  overlay: "rgba(11,11,15,0.68)",
 };
 
 export const lightColors: Colors = {
@@ -52,6 +55,7 @@ export const lightColors: Colors = {
   textFaint: "#9A9AA5",
   danger: "#DC2626",
   success: "#16A34A",
+  overlay: "rgba(255,255,255,0.86)",
 };
 
 export type ColorScheme = "light" | "dark";

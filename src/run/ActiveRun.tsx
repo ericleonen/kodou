@@ -72,75 +72,87 @@ export default function ActiveRun() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.topRow}>
-        <View style={styles.programPill}>
-          <MaterialCommunityIcons name="tune-vertical" size={14} color={c.primary} />
-          <Text style={styles.programText}>{programName}</Text>
+      <RunMap live style={StyleSheet.absoluteFill} mapPadding={{ top: 160, bottom: 120 }} />
+
+      <View style={styles.overlay} pointerEvents="box-none">
+        <View style={styles.topCluster} pointerEvents="box-none">
+          <View style={styles.topRow}>
+            <View style={styles.programPill}>
+              <MaterialCommunityIcons name="tune-vertical" size={14} color={c.primary} />
+              <Text style={styles.programText}>{programName}</Text>
+            </View>
+            {paused ? (
+              <View style={styles.pausedPill}>
+                <MaterialCommunityIcons name="pause" size={13} color={c.textMuted} />
+                <Text style={styles.pausedBadge}>Paused</Text>
+              </View>
+            ) : null}
+          </View>
+
+          <View style={styles.panel}>
+            <View style={styles.metricRow}>
+              <Metric
+                label={`Distance (${distanceUnit})`}
+                value={formatDistance(distanceInUnit, distanceUnit)}
+              />
+              <Metric label="Time" value={formatDuration(elapsed)} />
+              <Metric
+                label={`Pace (/${paceUnit})`}
+                value={paceSec != null ? formatDuration(paceSec) : "--:--"}
+              />
+            </View>
+            <View style={styles.goalTop}>
+              <Text style={styles.goalLabel}>
+                Goal: {config.goal.value} {config.goal.unit}
+              </Text>
+              <Text style={styles.goalRemaining}>{remainingLabel}</Text>
+            </View>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${clamped * 100}%` }]} />
+            </View>
+          </View>
+
+          {error ? <Text style={styles.error}>{error}</Text> : null}
         </View>
-        {paused ? <Text style={styles.pausedBadge}>Paused</Text> : null}
+
+        <View style={styles.bottomCluster} pointerEvents="box-none">
+          {paused ? (
+            <View style={styles.controlRow}>
+              <TouchableOpacity
+                style={[styles.control, styles.resumeButton]}
+                onPress={resumeRun}
+                activeOpacity={0.85}
+              >
+                <MaterialCommunityIcons name="play" size={20} color="#ffffff" />
+                <Text style={styles.controlText}>Resume</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.control, styles.finishButton]}
+                onPress={handleFinish}
+                activeOpacity={0.85}
+              >
+                <MaterialCommunityIcons name="flag-checkered" size={20} color={c.danger} />
+                <Text style={[styles.controlText, styles.finishText]}>Finish</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.pauseButton} onPress={pauseRun} activeOpacity={0.85}>
+              <MaterialCommunityIcons name="pause" size={20} color={c.text} />
+              <Text style={styles.pauseLabel}>Pause</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
-
-      <View style={styles.metrics}>
-        <Metric label={`Distance (${distanceUnit})`} value={formatDistance(distanceInUnit, distanceUnit)} big />
-        <View style={styles.metricRow}>
-          <Metric label="Time" value={formatDuration(elapsed)} />
-          <Metric label={`Pace (/${paceUnit})`} value={paceSec != null ? formatDuration(paceSec) : "--:--"} />
-        </View>
-      </View>
-
-      <View style={styles.goalCard}>
-        <View style={styles.goalTop}>
-          <Text style={styles.goalLabel}>
-            Goal: {config.goal.value} {config.goal.unit}
-          </Text>
-          <Text style={styles.goalRemaining}>{remainingLabel}</Text>
-        </View>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${clamped * 100}%` }]} />
-        </View>
-      </View>
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      <View style={styles.mapWrap}>
-        <RunMap live style={StyleSheet.absoluteFill} />
-      </View>
-
-      {paused ? (
-        <View style={styles.controlRow}>
-          <TouchableOpacity
-            style={[styles.control, styles.resumeButton]}
-            onPress={resumeRun}
-            activeOpacity={0.85}
-          >
-            <MaterialCommunityIcons name="play" size={20} color="#ffffff" />
-            <Text style={styles.controlText}>Resume</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.control, styles.finishButton]}
-            onPress={handleFinish}
-            activeOpacity={0.85}
-          >
-            <MaterialCommunityIcons name="flag-checkered" size={20} color={c.danger} />
-            <Text style={[styles.controlText, styles.finishText]}>Finish</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <TouchableOpacity style={styles.pauseButton} onPress={pauseRun} activeOpacity={0.85}>
-          <MaterialCommunityIcons name="pause" size={20} color={c.text} />
-          <Text style={styles.pauseLabel}>Pause</Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 }
 
-function Metric({ label, value, big }: { label: string; value: string; big?: boolean }) {
+function Metric({ label, value }: { label: string; value: string }) {
   const styles = useStyles();
   return (
-    <View style={big ? undefined : styles.metricCell}>
+    <View style={styles.metricCell}>
       <Text style={styles.metricLabel}>{label}</Text>
-      <Text style={[styles.metricValue, big && styles.metricValueBig]}>{value}</Text>
+      <Text style={styles.metricValue}>{value}</Text>
     </View>
   );
 }
@@ -165,9 +177,21 @@ function useStyles() {
     StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: c.background,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
+    backgroundColor: c.surfaceAlt,
+  },
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
+  },
+  topCluster: {
+    gap: spacing.sm,
   },
   topRow: {
     flexDirection: "row",
@@ -178,7 +202,7 @@ function useStyles() {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
-    backgroundColor: c.primarySoft,
+    backgroundColor: c.overlay,
     borderRadius: radius.pill,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
@@ -187,44 +211,44 @@ function useStyles() {
     ...typography.label,
     color: c.primary,
   },
+  pausedPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    backgroundColor: c.overlay,
+    borderRadius: radius.pill,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+  },
   pausedBadge: {
     ...typography.label,
     textTransform: "uppercase",
     color: c.textMuted,
     fontFamily: fonts.bold,
   },
-  metrics: {
-    marginTop: spacing.xxl,
-    gap: spacing.xl,
+  panel: {
+    backgroundColor: c.overlay,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    gap: spacing.md,
   },
   metricRow: {
     flexDirection: "row",
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   metricCell: {
     flex: 1,
   },
   metricLabel: {
-    ...typography.label,
+    ...typography.caption,
     color: c.textMuted,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.xxs,
   },
   metricValue: {
     ...typography.display,
-    fontSize: 40,
+    fontSize: 30,
     color: c.text,
     fontVariant: ["tabular-nums"],
-  },
-  metricValueBig: {
-    fontSize: 84,
-    lineHeight: 84,
-  },
-  goalCard: {
-    marginTop: spacing.xxl,
-    backgroundColor: c.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    gap: spacing.sm,
   },
   goalTop: {
     flexDirection: "row",
@@ -232,7 +256,7 @@ function useStyles() {
     alignItems: "center",
   },
   goalLabel: {
-    ...typography.body,
+    ...typography.label,
     fontFamily: fonts.semibold,
     color: c.text,
   },
@@ -242,33 +266,29 @@ function useStyles() {
     fontVariant: ["tabular-nums"],
   },
   progressTrack: {
-    height: 8,
+    height: 6,
     borderRadius: radius.pill,
     backgroundColor: c.surfaceAlt,
     overflow: "hidden",
   },
   progressFill: {
-    height: 8,
+    height: 6,
     borderRadius: radius.pill,
     backgroundColor: c.primary,
   },
   error: {
-    ...typography.body,
+    ...typography.label,
     color: c.danger,
-    marginTop: spacing.lg,
+    backgroundColor: c.overlay,
+    borderRadius: radius.sm,
+    padding: spacing.sm,
   },
-  mapWrap: {
-    flex: 1,
-    marginTop: spacing.lg,
-    marginBottom: spacing.lg,
-    borderRadius: radius.md,
-    overflow: "hidden",
-    backgroundColor: c.surfaceAlt,
+  bottomCluster: {
+    gap: spacing.md,
   },
   controlRow: {
     flexDirection: "row",
     gap: spacing.md,
-    marginBottom: spacing.lg,
   },
   control: {
     flex: 1,
@@ -290,10 +310,9 @@ function useStyles() {
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.sm,
-    backgroundColor: c.surfaceAlt,
+    backgroundColor: c.surface,
     borderRadius: radius.pill,
     paddingVertical: spacing.md,
-    marginBottom: spacing.lg,
   },
   pauseLabel: {
     ...typography.body,
@@ -305,6 +324,7 @@ function useStyles() {
     backgroundColor: c.primary,
   },
   finishButton: {
+    backgroundColor: c.overlay,
     borderWidth: 1.5,
     borderColor: c.danger,
   },

@@ -19,8 +19,13 @@ const LOCATION_TASK = "kodou-run-location";
 const ACCURACY_LIMIT = 30; // meters; drop worse fixes
 const MIN_STEP = 1; // meters; ignore jitter below this
 const SPEED_ALPHA = 0.3; // EMA smoothing factor
-const MOVING_SPEED = 0.3; // m/s below which we treat as stopped
-const AUTO_PAUSE_MS = 6000; // stopped this long (ms) → auto-pause
+const MOVING_SPEED = 0.3; // m/s below which we treat as stopped (pace display)
+// Auto-pause is deliberately lax: it fires only if every fix over a
+// sustained window stayed within a small radius (real net stillness, not
+// jittery GPS speed). Any genuine movement — even a slow walk — leaves the
+// radius and keeps the run going.
+const STOP_RADIUS = 5; // meters; must stay within this to count as stopped
+const AUTO_PAUSE_MS = 5000; // stopped this long → auto-pause
 const BUZZ_ON = 250;
 const BUZZ_OFF = 150;
 
@@ -61,7 +66,8 @@ let segmentStart = 0; // timestamp the current running segment began
 let autoPauseEnabled = false;
 let cueVolume = 1;
 let autoPaused = false; // paused by the engine (vs. the user)
-let lastMovingTime = 0; // timestamp we last saw movement
+// Recent fixes (within the auto-pause window) used to judge net stillness.
+let moveWindow: { t: number; point: RunPoint }[] = [];
 const path: RunPoint[] = [];
 const samples: RunSample[] = [];
 const events: RunEvent[] = [];
@@ -227,22 +233,43 @@ function onLocations(locations: Location.LocationObject[]) {
 
     const rawSpeed = raw != null && raw > 0 ? raw : 0;
     smoothed = smoothed === 0 ? rawSpeed : SPEED_ALPHA * rawSpeed + (1 - SPEED_ALPHA) * smoothed;
-    if (smoothed > MOVING_SPEED) lastMovingTime = now;
+    const next = { latitude, longitude };
 
-    // While auto-paused: watch for movement to resume, but don't accumulate.
+    // Net-stillness tracking over the window (independent of GPS speed).
+    // "moving" = some recent fix is farther than STOP_RADIUS from now.
+    let shouldAutoPause = false;
+    if (autoPauseEnabled) {
+      moveWindow.push({ t: now, point: next });
+      while (moveWindow.length > 2 && moveWindow[1].t < now - AUTO_PAUSE_MS) moveWindow.shift();
+      let maxDisp = 0;
+      for (const e of moveWindow) {
+        const d = haversine(e.point, next);
+        if (d > maxDisp) maxDisp = d;
+      }
+      const moving = maxDisp > STOP_RADIUS;
+      const spanned = now - moveWindow[0].t >= AUTO_PAUSE_MS;
+
+      if (state.paused && autoPaused) {
+        if (moving) {
+          // Genuine movement while auto-paused → resume.
+          segmentStart = now;
+          lastCoord = next;
+          state.paused = false;
+          autoPaused = false;
+          moveWindow = [{ t: now, point: next }];
+          changed = true;
+        }
+      } else if (spanned && !moving) {
+        shouldAutoPause = true;
+      }
+    }
+
+    // While paused: don't accumulate distance/time.
     if (state.paused) {
       state.speed = smoothed;
-      if (smoothed > MOVING_SPEED) {
-        segmentStart = now;
-        lastCoord = { latitude, longitude };
-        state.paused = false;
-        autoPaused = false;
-        changed = true;
-      }
       continue;
     }
 
-    const next = { latitude, longitude };
     if (lastCoord) {
       const step = haversine(lastCoord, next);
       if (step >= MIN_STEP) {
@@ -260,8 +287,7 @@ function onLocations(locations: Location.LocationObject[]) {
     samples.push({ t: state.elapsed, speed: smoothed });
     changed = true;
 
-    // Auto-pause after being stopped long enough.
-    if (autoPauseEnabled && now - lastMovingTime > AUTO_PAUSE_MS) {
+    if (shouldAutoPause) {
       accumulatedMs += now - segmentStart;
       lastCoord = null;
       state.paused = true;
@@ -314,7 +340,7 @@ export async function startRun(
   autoPauseEnabled = options.autoPause ?? false;
   cueVolume = options.cueVolume ?? 1;
   autoPaused = false;
-  lastMovingTime = segmentStart;
+  moveWindow = [];
   path.length = 0;
   samples.length = 0;
   events.length = 0;
@@ -386,7 +412,7 @@ export function resumeRun() {
   if (state.phase !== "active" || !state.paused) return;
   segmentStart = Date.now();
   lastCoord = null;
-  lastMovingTime = segmentStart; // don't immediately auto-pause on resume
+  moveWindow = []; // re-arm so it doesn't immediately auto-pause
   state.paused = false;
   autoPaused = false;
   emit();
@@ -427,7 +453,7 @@ export function resetRun() {
   triggers = {};
   autoPaused = false;
   autoPauseEnabled = false;
-  lastMovingTime = 0;
+  moveWindow = [];
   path.length = 0;
   samples.length = 0;
   events.length = 0;
