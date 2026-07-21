@@ -5,6 +5,13 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F01030",
+      "imageWidth": 578
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.kodou.app",
@@ -25,7 +32,11 @@
         "FOREGROUND_SERVICE_LOCATION",
         "WAKE_LOCK",
         "RECEIVE_BOOT_COMPLETED"
-      ]
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F01030"
+      }
     },
     "plugins": [
       "expo-dev-client",
