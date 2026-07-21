@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TextInput, View } from "react-native";
 import Dropdown from "../components/Dropdown";
 import RunMap from "../components/RunMap";
 import PressableScale from "../components/PressableScale";
+import SegmentedControl from "../components/SegmentedControl";
+import SlideIn from "../components/SlideIn";
 import { haptics } from "../haptics";
 import { fonts, useColors, radius, spacing, typography } from "../theme";
 import { useStore } from "../program/store";
@@ -65,10 +67,14 @@ export default function RunSetup({ onStart }: { onStart: (config: RunConfig) => 
     <View style={styles.container}>
       <View style={[styles.section, styles.firstSection]}>
         <Text style={styles.label}>Goal</Text>
-        <View style={styles.segmented}>
-          <Segment label="Distance" active={kind === "distance"} onPress={() => selectKind("distance")} />
-          <Segment label="Time" active={kind === "time"} onPress={() => selectKind("time")} />
-        </View>
+        <SegmentedControl
+          value={kind}
+          onChange={selectKind}
+          options={[
+            { label: "Distance", value: "distance" },
+            { label: "Time", value: "time" },
+          ]}
+        />
         <View style={styles.goalRow}>
           <TextInput
             style={[styles.input, valueError && styles.inputError]}
@@ -99,36 +105,17 @@ export default function RunSetup({ onStart }: { onStart: (config: RunConfig) => 
         <RunMap live style={StyleSheet.absoluteFill} />
       </View>
 
-      <PressableScale
-        style={[styles.startButton, !valid && styles.startDisabled]}
-        onPress={start}
-        disabled={!valid}
-        haptic={haptics.medium}
-      >
-        <Text style={styles.startText}>Start run</Text>
-      </PressableScale>
+      <SlideIn>
+        <PressableScale
+          style={[styles.startButton, !valid && styles.startDisabled]}
+          onPress={start}
+          disabled={!valid}
+          haptic={haptics.medium}
+        >
+          <Text style={styles.startText}>Start run</Text>
+        </PressableScale>
+      </SlideIn>
     </View>
-  );
-}
-
-function Segment({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  const styles = useStyles();
-  return (
-    <TouchableOpacity
-      style={[styles.segment, active && styles.segmentActive]}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
-      <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{label}</Text>
-    </TouchableOpacity>
   );
 }
 
@@ -141,6 +128,7 @@ function useStyles() {
     backgroundColor: c.background,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
   },
   section: {
     marginTop: spacing.xl,
@@ -153,30 +141,6 @@ function useStyles() {
     ...typography.label,
     textTransform: "uppercase",
     color: c.textMuted,
-  },
-  segmented: {
-    flexDirection: "row",
-    backgroundColor: c.surface,
-    borderRadius: radius.md,
-    padding: spacing.xs,
-    gap: spacing.xs,
-  },
-  segment: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: spacing.sm,
-    borderRadius: radius.sm,
-  },
-  segmentActive: {
-    backgroundColor: c.primarySoft,
-  },
-  segmentText: {
-    ...typography.body,
-    fontFamily: fonts.semibold,
-    color: c.textMuted,
-  },
-  segmentTextActive: {
-    color: c.primary,
   },
   goalRow: {
     flexDirection: "row",
@@ -219,7 +183,6 @@ function useStyles() {
     borderRadius: radius.pill,
     paddingVertical: spacing.md,
     alignItems: "center",
-    marginBottom: spacing.lg,
   },
   startDisabled: {
     backgroundColor: c.surfaceAlt,

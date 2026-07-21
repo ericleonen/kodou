@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Keyboard,
   Modal,
   ScrollView,
   StyleSheet,
@@ -9,9 +10,10 @@ import {
   View,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Animated, { SlideInDown } from "react-native-reanimated";
 import Dropdown from "../components/Dropdown";
 import { useKeyboardHeight } from "../hooks/useKeyboardHeight";
-import { fonts, useColors, radius, spacing, typography } from "../theme";
+import { fonts, motion, useColors, radius, spacing, typography } from "../theme";
 import {
   DISTANCE_UNITS,
   MOMENTS,
@@ -180,9 +182,15 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
   const soundOptions = sounds.map((s) => ({ label: s.name, value: s.id }));
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="fade"
+      transparent
+      onRequestClose={onClose}
+      onShow={() => Keyboard.dismiss()}
+    >
       <View style={[styles.backdrop, { paddingBottom: keyboardHeight }]}>
-        <View style={styles.sheet}>
+        <Animated.View style={styles.sheet} entering={SlideInDown.duration(motion.base)}>
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose} hitSlop={8}>
               <Text style={styles.cancel}>Cancel</Text>
@@ -330,7 +338,7 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
               </TouchableOpacity>
             ) : null}
           </ScrollView>
-        </View>
+        </Animated.View>
       </View>
 
       <SoundEditorModal

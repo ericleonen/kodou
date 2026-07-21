@@ -8,17 +8,16 @@ import {
   View,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import PaceChart from "../components/PaceChart";
 import RunMap from "../components/RunMap";
 import ActionSheet from "../components/ActionSheet";
-import SwipeBackView from "../components/SwipeBackView";
 import { confirmDelete } from "../components/confirmDelete";
-import { useBackHandler } from "../hooks/useBackHandler";
 import { MOMENTS } from "../program/catalog";
 import { fonts, radius, spacing, typography, useColors } from "../theme";
 import { useRuns } from "./runsStore";
 import { useRunPlace } from "./place";
-import RunEdit from "./RunEdit";
 import {
   formatAvgPace,
   formatDistance,
@@ -32,19 +31,23 @@ import {
   runDistanceUnit,
   runTitle,
 } from "./format";
-import { SavedRun } from "./types";
+import { YouStackParamList } from "../navigation/types";
 
-/** Full-detail view of a saved run; editing lives on a separate screen. */
-export default function RunDetail({ run, onBack }: { run: SavedRun; onBack: () => void }) {
+type Nav = NativeStackNavigationProp<YouStackParamList, "RunDetail">;
+
+/** Full-detail view of a saved run; editing is a separate pushed screen. */
+export default function RunDetailScreen() {
   const c = useColors();
   const styles = useStyles();
-  const { deleteRun } = useRuns();
+  const navigation = useNavigation<Nav>();
+  const { params } = useRoute<RouteProp<YouStackParamList, "RunDetail">>();
+  const { runs, deleteRun } = useRuns();
+  const run = runs.find((r) => r.id === params.runId);
   const place = useRunPlace(run);
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const [editing, setEditing] = useState(false);
 
-  useBackHandler(onBack);
+  if (!run) return null;
 
   const unit = runDistanceUnit(run.goal);
   const paceUnit = paceUnitLabel(unit);
@@ -53,14 +56,10 @@ export default function RunDetail({ run, onBack }: { run: SavedRun; onBack: () =
   const runEvents = run.events ?? [];
   const paceMarkers = runEvents.map((e) => ({ icon: MOMENTS[e.type].icon, t: e.t }));
 
-  if (editing) {
-    return <RunEdit run={run} onDone={() => setEditing(false)} />;
-  }
-
   return (
-    <SwipeBackView onBack={onBack} style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={onBack} hitSlop={8} accessibilityLabel="Back">
+        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={8} accessibilityLabel="Back">
           <MaterialCommunityIcons name="chevron-left" size={28} color={c.text} />
         </TouchableOpacity>
         <TouchableOpacity
@@ -72,10 +71,7 @@ export default function RunDetail({ run, onBack }: { run: SavedRun; onBack: () =
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.titleText}>{runTitle(run)}</Text>
         <Text style={styles.meta}>
           {[place, formatRunDate(run.date), formatRunTime(run.date)].filter(Boolean).join(" · ")}
@@ -144,7 +140,7 @@ export default function RunDetail({ run, onBack }: { run: SavedRun; onBack: () =
           {
             label: "Edit run",
             icon: "pencil-outline",
-            onPress: () => setEditing(true),
+            onPress: () => navigation.navigate("RunEdit", { runId: run.id }),
           },
           {
             label: "Delete run",
@@ -152,13 +148,13 @@ export default function RunDetail({ run, onBack }: { run: SavedRun; onBack: () =
             destructive: true,
             onPress: () =>
               confirmDelete("run", () => {
+                navigation.goBack();
                 deleteRun(run.id);
-                onBack();
               }),
           },
         ]}
       />
-    </SwipeBackView>
+    </View>
   );
 }
 

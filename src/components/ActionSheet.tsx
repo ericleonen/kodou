@@ -195,7 +195,7 @@ function useStyles() {
     borderTopRightRadius: radius.lg,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.lg,
-    paddingBottom: spacing.lg,
+    paddingBottom: spacing.xxl,
   },
   sheetTitle: {
     ...typography.label,

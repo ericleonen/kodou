@@ -1,14 +1,14 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { fonts, radius, spacing, typography, useColors } from "../theme";
 import { haptics } from "../haptics";
 import PressableScale from "../components/PressableScale";
 import RunMap from "../components/RunMap";
 import { useRuns } from "../run/runsStore";
-import RunDetail from "../run/RunDetail";
 import { useRunPlace } from "../run/place";
-import SettingsScreen from "./SettingsScreen";
 import {
   formatAvgPace,
   formatDistance,
@@ -23,29 +23,26 @@ import {
   runTitle,
 } from "../run/format";
 import { SavedRun } from "../run/types";
+import { YouStackParamList } from "../navigation/types";
+
+type Nav = NativeStackNavigationProp<YouStackParamList, "YouHome">;
 
 /** You tab: locally saved runs, each summarized on a tappable card. */
 export default function YouScreen() {
   const c = useColors();
   const styles = useStyles();
+  const navigation = useNavigation<Nav>();
   const { runs } = useRuns();
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [openRunId, setOpenRunId] = useState<string | null>(null);
-
-  if (settingsOpen) {
-    return <SettingsScreen onBack={() => setSettingsOpen(false)} />;
-  }
-
-  const openRun = openRunId ? runs.find((r) => r.id === openRunId) : null;
-  if (openRun) {
-    return <RunDetail run={openRun} onBack={() => setOpenRunId(null)} />;
-  }
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerLabel}>Activity</Text>
-        <TouchableOpacity onPress={() => setSettingsOpen(true)} hitSlop={8} accessibilityLabel="Settings">
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Settings")}
+          hitSlop={8}
+          accessibilityLabel="Settings"
+        >
           <MaterialCommunityIcons name="cog-outline" size={24} color={c.textMuted} />
         </TouchableOpacity>
       </View>
@@ -55,7 +52,11 @@ export default function YouScreen() {
           <Text style={styles.empty}>No saved runs yet. Finish a run to save it here.</Text>
         ) : (
           runs.map((run) => (
-            <RunCard key={run.id} run={run} onPress={() => setOpenRunId(run.id)} />
+            <RunCard
+              key={run.id}
+              run={run}
+              onPress={() => navigation.navigate("RunDetail", { runId: run.id })}
+            />
           ))
         )}
       </ScrollView>

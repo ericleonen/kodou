@@ -1,30 +1,58 @@
-import { useMemo, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { useMemo } from "react";
+import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  DarkTheme,
+  DefaultTheme,
+  NavigationContainer,
+  Theme,
+} from "@react-navigation/native";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { useColors } from "../theme";
-import ProgramScreen from "../screens/ProgramScreen";
+import { useSettings } from "../settings/settings";
 import RunScreen from "../screens/RunScreen";
-import YouScreen from "../screens/YouScreen";
-import TabBar, { TabKey } from "./TabBar";
+import ProgramStack from "./ProgramStack";
+import YouStack from "./YouStack";
+import TabBar from "./TabBar";
+import { TabParamList } from "./types";
+
+const Tab = createBottomTabNavigator<TabParamList>();
 
 /**
- * Minimal tab navigation without a routing library: a piece of state
- * selects which screen renders above a persistent bottom bar. This keeps
- * the app free of extra native modules for now; it can be swapped for
- * expo-router or React Navigation once the screens grow real content.
+ * Bottom tabs (with a shift animation between them) over three sections;
+ * Program and You are native stacks so their detail screens slide in and
+ * support the native swipe/hardware back.
  */
 export default function RootNavigator() {
-  const [active, setActive] = useState<TabKey>("run");
+  const c = useColors();
+  const { theme } = useSettings();
   const styles = useStyles();
+
+  const base = theme === "dark" ? DarkTheme : DefaultTheme;
+  const navTheme: Theme = {
+    ...base,
+    colors: {
+      ...base.colors,
+      background: c.background,
+      card: c.surface,
+      border: c.border,
+      primary: c.primary,
+      text: c.text,
+    },
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
-      <View style={styles.screen}>
-        {active === "program" && <ProgramScreen />}
-        {active === "run" && <RunScreen />}
-        {active === "you" && <YouScreen />}
-      </View>
-      <TabBar active={active} onChange={setActive} />
+      <NavigationContainer theme={navTheme}>
+        <Tab.Navigator
+          tabBar={(props) => <TabBar {...props} />}
+          screenOptions={{ headerShown: false, animation: "shift" }}
+        >
+          <Tab.Screen name="program" component={ProgramStack} />
+          <Tab.Screen name="run" component={RunScreen} />
+          <Tab.Screen name="you" component={YouStack} />
+        </Tab.Navigator>
+      </NavigationContainer>
     </SafeAreaView>
   );
 }
@@ -37,9 +65,6 @@ function useStyles() {
         safe: {
           flex: 1,
           backgroundColor: c.background,
-        },
-        screen: {
-          flex: 1,
         },
       }),
     [c]

@@ -22,11 +22,11 @@ export async function reverseGeocode(point: RunPoint): Promise<string | null> {
  * The run's area, using its stored value or resolving it from the path's
  * start the first time it's needed (older runs saved without one).
  */
-export function useRunPlace(run: SavedRun): string | null {
-  const [place, setPlace] = useState<string | null>(run.place ?? null);
+export function useRunPlace(run: SavedRun | null | undefined): string | null {
+  const [place, setPlace] = useState<string | null>(run?.place ?? null);
 
   useEffect(() => {
-    if (run.place || run.path.length === 0) return;
+    if (!run || run.place || run.path.length === 0) return;
     let active = true;
     reverseGeocode(run.path[0]).then((p) => {
       if (active && p) setPlace(p);
@@ -35,7 +35,7 @@ export function useRunPlace(run: SavedRun): string | null {
       active = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [run.id]);
+  }, [run?.id]);
 
   return place;
 }

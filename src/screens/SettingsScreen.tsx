@@ -1,23 +1,21 @@
 import { useMemo } from "react";
 import { StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import SwipeBackView from "../components/SwipeBackView";
-import { useBackHandler } from "../hooks/useBackHandler";
+import { useNavigation } from "@react-navigation/native";
 import { radius, spacing, typography, useColors } from "../theme";
 import { useSettings } from "../settings/settings";
 
 /** Settings screen, reached from the You tab. Theme toggle for now. */
-export default function SettingsScreen({ onBack }: { onBack: () => void }) {
+export default function SettingsScreen() {
   const c = useColors();
   const styles = useStyles();
+  const navigation = useNavigation();
   const { theme, setTheme } = useSettings();
   const isDark = theme === "dark";
 
-  useBackHandler(onBack);
-
   return (
-    <SwipeBackView onBack={onBack} style={styles.container}>
-      <TouchableOpacity style={styles.back} onPress={onBack} activeOpacity={0.7} hitSlop={8}>
+    <View style={styles.container}>
+      <TouchableOpacity style={styles.back} onPress={() => navigation.goBack()} activeOpacity={0.7} hitSlop={8}>
         <MaterialCommunityIcons name="chevron-left" size={22} color={c.textMuted} />
         <Text style={styles.backText}>You</Text>
       </TouchableOpacity>
@@ -41,7 +39,7 @@ export default function SettingsScreen({ onBack }: { onBack: () => void }) {
           />
         </View>
       </View>
-    </SwipeBackView>
+    </View>
   );
 }
 
