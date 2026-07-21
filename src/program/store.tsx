@@ -43,6 +43,8 @@ interface StoreValue {
   renameSound: (id: string, name: string) => void;
   deleteSound: (id: string) => void;
   soundName: (id: string) => string | undefined;
+  /** Wipes all presets and sounds (deleting the audio files too). */
+  clearAll: () => void;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -163,6 +165,14 @@ export function ProgramStoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const clearAll = useCallback(() => {
+    setSounds((prev) => {
+      prev.forEach((s) => deleteSoundFile(s.uri));
+      return [];
+    });
+    setPresets([]);
+  }, []);
+
   const soundsRef = useRef(sounds);
   soundsRef.current = sounds;
   const soundName = useCallback((id: string) => soundsRef.current.find((s) => s.id === id)?.name, []);
@@ -185,6 +195,7 @@ export function ProgramStoreProvider({ children }: { children: ReactNode }) {
         renameSound,
         deleteSound,
         soundName,
+        clearAll,
       }}
     >
       {children}

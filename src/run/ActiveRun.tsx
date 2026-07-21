@@ -1,9 +1,11 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import RunMap from "../components/RunMap";
 import { fonts, radius, spacing, typography, useColors } from "../theme";
 import { useStore } from "../program/store";
+import { useSettings } from "../settings/settings";
 import { finishRun, pauseRun, resumeRun, useRunEngine } from "./runEngine";
 import {
   DistanceGoalUnit,
@@ -17,7 +19,17 @@ export default function ActiveRun() {
   const c = useColors();
   const styles = useStyles();
   const { presets } = useStore();
+  const { paceUnit, keepAwake } = useSettings();
   const { config, distance, elapsed, paused, error } = useRunEngine();
+
+  useEffect(() => {
+    if (!keepAwake) return;
+    const tag = "kodou-run";
+    activateKeepAwakeAsync(tag).catch(() => {});
+    return () => {
+      Promise.resolve(deactivateKeepAwake(tag)).catch(() => {});
+    };
+  }, [keepAwake]);
 
   if (!config) return null;
 
@@ -26,7 +38,6 @@ export default function ActiveRun() {
 
   const distanceUnit: DistanceGoalUnit =
     config.goal.kind === "distance" ? (config.goal.unit as DistanceGoalUnit) : "km";
-  const paceUnit = distanceUnit === "mi" ? "mi" : "km";
   const distanceInUnit = metersToDistanceUnit(distance, distanceUnit);
 
   // Average pace: total time over total distance, in seconds per mi/km.

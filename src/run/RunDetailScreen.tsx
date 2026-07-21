@@ -18,6 +18,7 @@ import { MOMENTS } from "../program/catalog";
 import { fonts, radius, spacing, typography, useColors } from "../theme";
 import { useRuns } from "./runsStore";
 import { useRunPlace } from "./place";
+import { useSettings } from "../settings/settings";
 import {
   formatAvgPace,
   formatDistance,
@@ -26,7 +27,6 @@ import {
   formatRunDate,
   formatRunTime,
   isGoalReached,
-  paceUnitLabel,
   runAchievement,
   runDistanceUnit,
   runTitle,
@@ -42,6 +42,7 @@ export default function RunDetailScreen() {
   const navigation = useNavigation<Nav>();
   const { params } = useRoute<RouteProp<YouStackParamList, "RunDetail">>();
   const { runs, deleteRun } = useRuns();
+  const { paceUnit } = useSettings();
   const run = runs.find((r) => r.id === params.runId);
   const place = useRunPlace(run);
 
@@ -50,7 +51,6 @@ export default function RunDetailScreen() {
   if (!run) return null;
 
   const unit = runDistanceUnit(run.goal);
-  const paceUnit = paceUnitLabel(unit);
   const reached = isGoalReached(run);
 
   const runEvents = run.events ?? [];
@@ -100,7 +100,7 @@ export default function RunDetailScreen() {
           <Stat label="Time" value={formatDuration(run.duration)} />
           <Stat
             label={`Pace (/${paceUnit})`}
-            value={formatAvgPace(run.distance, run.duration, unit)}
+            value={formatAvgPace(run.distance, run.duration, paceUnit)}
           />
         </View>
 

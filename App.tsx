@@ -23,8 +23,8 @@ import RootNavigator from "./src/navigation/RootNavigator";
 SplashScreen.preventAutoHideAsync();
 
 function ThemedStatusBar() {
-  const { theme } = useSettings();
-  return <StatusBar style={theme === "light" ? "dark" : "light"} />;
+  const { resolvedScheme } = useSettings();
+  return <StatusBar style={resolvedScheme === "light" ? "dark" : "light"} />;
 }
 
 export default function App() {

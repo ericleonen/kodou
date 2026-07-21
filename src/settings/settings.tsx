@@ -6,23 +6,65 @@ import {
   useEffect,
   useState,
 } from "react";
+import { useColorScheme } from "react-native";
 import { Directory, File, Paths } from "expo-file-system";
 import { ColorScheme, ColorsProvider, darkColors, lightColors } from "../theme";
+import { setHapticsEnabled } from "../haptics";
+import { DistanceGoalUnit, TimeGoalUnit } from "../run/types";
 
 const DATA_DIR = new Directory(Paths.document, "kodou");
 const SETTINGS_FILE = new File(DATA_DIR, "settings.json");
 
+export type PaceUnit = "mi" | "km";
+export type ThemePref = "light" | "dark" | "system";
+
 interface StoredSettings {
-  theme: ColorScheme;
+  theme: ThemePref;
+  /** Default distance unit for new distance-goal runs and distance display. */
+  distanceUnit: DistanceGoalUnit;
+  /** Default time unit for new time-goal runs. */
+  timeUnit: TimeGoalUnit;
+  /** Unit that pace is shown in everywhere. */
+  paceUnit: PaceUnit;
+  /** Whether tap/selection haptics fire. */
+  haptics: boolean;
+  /** Show a 3-2-1 countdown before tracking starts. */
+  startCountdown: boolean;
+  /** Auto-pause tracking when you stop moving. */
+  autoPause: boolean;
+  /** Keep the screen on during an active run. */
+  keepAwake: boolean;
+  /** Preset pre-selected on the run setup screen (null = no program). */
+  defaultPresetId: string | null;
+  /** Playback volume for program sound cues (0–1). */
+  cueVolume: number;
+  /** Lower other apps' audio while a cue plays. */
+  duckAudio: boolean;
 }
+
+const DEFAULTS: StoredSettings = {
+  theme: "dark",
+  distanceUnit: "km",
+  timeUnit: "min",
+  paceUnit: "km",
+  haptics: true,
+  startCountdown: true,
+  autoPause: true,
+  keepAwake: true,
+  defaultPresetId: null,
+  cueVolume: 1,
+  duckAudio: true,
+};
 
 async function loadSettings(): Promise<StoredSettings> {
   try {
     if (!DATA_DIR.exists) DATA_DIR.create();
-    if (!SETTINGS_FILE.exists) return { theme: "dark" };
-    return JSON.parse(await SETTINGS_FILE.text()) as StoredSettings;
+    if (!SETTINGS_FILE.exists) return DEFAULTS;
+    // Merge over defaults so settings files written before a field existed
+    // still get a sensible value.
+    return { ...DEFAULTS, ...(JSON.parse(await SETTINGS_FILE.text()) as Partial<StoredSettings>) };
   } catch {
-    return { theme: "dark" };
+    return DEFAULTS;
   }
 }
 
@@ -36,36 +78,52 @@ function saveSettings(settings: StoredSettings) {
   }
 }
 
-interface SettingsValue {
-  theme: ColorScheme;
-  setTheme: (theme: ColorScheme) => void;
+interface SettingsValue extends StoredSettings {
+  /** The light/dark palette actually in effect (resolves "system"). */
+  resolvedScheme: ColorScheme;
+  update: (patch: Partial<StoredSettings>) => void;
 }
 
 const SettingsContext = createContext<SettingsValue | null>(null);
 
-/** Holds app settings (theme) and provides the active color palette. */
+/** Holds app settings and provides the active color palette. */
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ColorScheme>("dark");
+  const [settings, setSettings] = useState<StoredSettings>(DEFAULTS);
+  const systemScheme = useColorScheme();
 
   useEffect(() => {
     let active = true;
     loadSettings().then((s) => {
-      if (active) setThemeState(s.theme);
+      if (active) setSettings(s);
     });
     return () => {
       active = false;
     };
   }, []);
 
-  const setTheme = useCallback((next: ColorScheme) => {
-    setThemeState(next);
-    saveSettings({ theme: next });
+  // Keep the haptics module in sync with the preference.
+  useEffect(() => {
+    setHapticsEnabled(settings.haptics);
+  }, [settings.haptics]);
+
+  const update = useCallback((patch: Partial<StoredSettings>) => {
+    setSettings((prev) => {
+      const next = { ...prev, ...patch };
+      saveSettings(next);
+      return next;
+    });
   }, []);
 
-  const palette = theme === "light" ? lightColors : darkColors;
+  const resolvedScheme: ColorScheme =
+    settings.theme === "system"
+      ? systemScheme === "light"
+        ? "light"
+        : "dark"
+      : settings.theme;
+  const palette = resolvedScheme === "light" ? lightColors : darkColors;
 
   return (
-    <SettingsContext.Provider value={{ theme, setTheme }}>
+    <SettingsContext.Provider value={{ ...settings, resolvedScheme, update }}>
       <ColorsProvider value={palette}>{children}</ColorsProvider>
     </SettingsContext.Provider>
   );

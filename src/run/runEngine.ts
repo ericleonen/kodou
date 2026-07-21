@@ -20,6 +20,7 @@ const ACCURACY_LIMIT = 30; // meters; drop worse fixes
 const MIN_STEP = 1; // meters; ignore jitter below this
 const SPEED_ALPHA = 0.3; // EMA smoothing factor
 const MOVING_SPEED = 0.3; // m/s below which we treat as stopped
+const AUTO_PAUSE_MS = 6000; // stopped this long (ms) → auto-pause
 const BUZZ_ON = 250;
 const BUZZ_OFF = 150;
 
@@ -55,6 +56,12 @@ let lastCoord: RunPoint | null = null;
 let smoothed = 0;
 let accumulatedMs = 0; // elapsed time from prior (unpaused) segments
 let segmentStart = 0; // timestamp the current running segment began
+
+// Run options + auto-pause state.
+let autoPauseEnabled = false;
+let cueVolume = 1;
+let autoPaused = false; // paused by the engine (vs. the user)
+let lastMovingTime = 0; // timestamp we last saw movement
 const path: RunPoint[] = [];
 const samples: RunSample[] = [];
 const events: RunEvent[] = [];
@@ -116,6 +123,7 @@ function fire(rule: Rule) {
       try {
         if (!player) player = createAudioPlayer(sound.uri);
         else player.replace(sound.uri);
+        player.volume = cueVolume;
         player.seekTo(sound.start);
         player.play();
         const activePlayer = player;
@@ -206,7 +214,10 @@ function evaluateTriggers() {
 // ---- Location handling --------------------------------------------------
 
 function onLocations(locations: Location.LocationObject[]) {
-  if (state.phase !== "active" || state.paused) return;
+  if (state.phase !== "active") return;
+  // A manual pause ignores fixes entirely; an auto-pause keeps listening so
+  // it can detect movement and resume on its own.
+  if (state.paused && !autoPaused) return;
   const now = Date.now();
   let changed = false;
 
@@ -216,6 +227,20 @@ function onLocations(locations: Location.LocationObject[]) {
 
     const rawSpeed = raw != null && raw > 0 ? raw : 0;
     smoothed = smoothed === 0 ? rawSpeed : SPEED_ALPHA * rawSpeed + (1 - SPEED_ALPHA) * smoothed;
+    if (smoothed > MOVING_SPEED) lastMovingTime = now;
+
+    // While auto-paused: watch for movement to resume, but don't accumulate.
+    if (state.paused) {
+      state.speed = smoothed;
+      if (smoothed > MOVING_SPEED) {
+        segmentStart = now;
+        lastCoord = { latitude, longitude };
+        state.paused = false;
+        autoPaused = false;
+        changed = true;
+      }
+      continue;
+    }
 
     const next = { latitude, longitude };
     if (lastCoord) {
@@ -234,6 +259,14 @@ function onLocations(locations: Location.LocationObject[]) {
     state.elapsed = computeElapsed(now);
     samples.push({ t: state.elapsed, speed: smoothed });
     changed = true;
+
+    // Auto-pause after being stopped long enough.
+    if (autoPauseEnabled && now - lastMovingTime > AUTO_PAUSE_MS) {
+      accumulatedMs += now - segmentStart;
+      lastCoord = null;
+      state.paused = true;
+      autoPaused = true;
+    }
   }
 
   if (changed) {
@@ -259,7 +292,18 @@ if (!TaskManager.isTaskDefined(LOCATION_TASK)) {
 
 // ---- Public control -----------------------------------------------------
 
-export async function startRun(config: RunConfig, ruleList: Rule[], soundList: Sound[]) {
+export interface RunOptions {
+  autoPause?: boolean;
+  cueVolume?: number;
+  duckAudio?: boolean;
+}
+
+export async function startRun(
+  config: RunConfig,
+  ruleList: Rule[],
+  soundList: Sound[],
+  options: RunOptions = {}
+) {
   rules = ruleList;
   sounds = soundList;
   triggers = {};
@@ -267,6 +311,10 @@ export async function startRun(config: RunConfig, ruleList: Rule[], soundList: S
   smoothed = 0;
   accumulatedMs = 0;
   segmentStart = Date.now();
+  autoPauseEnabled = options.autoPause ?? false;
+  cueVolume = options.cueVolume ?? 1;
+  autoPaused = false;
+  lastMovingTime = segmentStart;
   path.length = 0;
   samples.length = 0;
   events.length = 0;
@@ -286,7 +334,7 @@ export async function startRun(config: RunConfig, ruleList: Rule[], soundList: S
     await setAudioModeAsync({
       playsInSilentMode: true,
       shouldPlayInBackground: true,
-      interruptionMode: "mixWithOthers",
+      interruptionMode: options.duckAudio ? "duckOthers" : "mixWithOthers",
     });
   } catch {
     // non-fatal
@@ -330,6 +378,7 @@ export function pauseRun() {
   accumulatedMs += Date.now() - segmentStart;
   lastCoord = null; // re-anchor on resume so paused movement isn't counted
   state.paused = true;
+  autoPaused = false; // this is a manual pause
   emit();
 }
 
@@ -337,7 +386,9 @@ export function resumeRun() {
   if (state.phase !== "active" || !state.paused) return;
   segmentStart = Date.now();
   lastCoord = null;
+  lastMovingTime = segmentStart; // don't immediately auto-pause on resume
   state.paused = false;
+  autoPaused = false;
   emit();
 }
 
@@ -374,6 +425,9 @@ export function resetRun() {
   rules = [];
   sounds = [];
   triggers = {};
+  autoPaused = false;
+  autoPauseEnabled = false;
+  lastMovingTime = 0;
   path.length = 0;
   samples.length = 0;
   events.length = 0;

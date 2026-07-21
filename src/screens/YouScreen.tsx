@@ -9,6 +9,7 @@ import PressableScale from "../components/PressableScale";
 import RunMap from "../components/RunMap";
 import { useRuns } from "../run/runsStore";
 import { useRunPlace } from "../run/place";
+import { useSettings } from "../settings/settings";
 import {
   formatAvgPace,
   formatDistance,
@@ -17,7 +18,6 @@ import {
   formatRunDate,
   formatRunTime,
   isGoalReached,
-  paceUnitLabel,
   runAchievement,
   runDistanceUnit,
   runTitle,
@@ -68,8 +68,8 @@ function RunCard({ run, onPress }: { run: SavedRun; onPress: () => void }) {
   const c = useColors();
   const styles = useStyles();
   const place = useRunPlace(run);
+  const { paceUnit } = useSettings();
   const unit = runDistanceUnit(run.goal);
-  const paceUnit = paceUnitLabel(unit);
   const reached = isGoalReached(run);
 
   return (
@@ -105,7 +105,7 @@ function RunCard({ run, onPress }: { run: SavedRun; onPress: () => void }) {
       <View style={styles.totals}>
         <Text style={styles.totalsText}>
           {formatDistance(run.distance, unit)} {unit} · {formatDuration(run.duration)} ·{" "}
-          {formatAvgPace(run.distance, run.duration, unit)} /{paceUnit}
+          {formatAvgPace(run.distance, run.duration, paceUnit)} /{paceUnit}
         </Text>
         {run.presetName ? (
           <View style={styles.programRow}>

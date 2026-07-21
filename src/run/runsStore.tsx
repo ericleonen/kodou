@@ -26,6 +26,7 @@ interface RunsValue {
   ) => SavedRun;
   updateRun: (id: string, patch: Pick<SavedRun, "title" | "notes">) => void;
   deleteRun: (id: string) => void;
+  clearRuns: () => void;
 }
 
 const RunsContext = createContext<RunsValue | null>(null);
@@ -83,8 +84,10 @@ export function RunsProvider({ children }: { children: ReactNode }) {
     setRuns((prev) => prev.filter((r) => r.id !== id));
   }, []);
 
+  const clearRuns = useCallback(() => setRuns([]), []);
+
   return (
-    <RunsContext.Provider value={{ ready, runs, saveRun, updateRun, deleteRun }}>
+    <RunsContext.Provider value={{ ready, runs, saveRun, updateRun, deleteRun, clearRuns }}>
       {children}
     </RunsContext.Provider>
   );

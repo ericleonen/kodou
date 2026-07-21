@@ -8,6 +8,7 @@ import SlideIn from "../components/SlideIn";
 import { haptics } from "../haptics";
 import { fonts, useColors, radius, spacing, typography } from "../theme";
 import { useStore } from "../program/store";
+import { useSettings } from "../settings/settings";
 import {
   DISTANCE_GOAL_UNITS,
   GOAL_UNIT_NAMES,
@@ -18,7 +19,6 @@ import {
 } from "./types";
 
 const NO_PROGRAM = "none";
-const DEFAULT_UNIT: Record<GoalKind, GoalUnit> = { distance: "km", time: "min" };
 
 function sanitizeDecimal(text: string): string {
   const cleaned = text.replace(/[^0-9.]/g, "");
@@ -32,11 +32,12 @@ export default function RunSetup({ onStart }: { onStart: (config: RunConfig) => 
   const c = useColors();
   const styles = useStyles();
   const { presets } = useStore();
+  const settings = useSettings();
 
   const [kind, setKind] = useState<GoalKind>("distance");
   const [value, setValue] = useState("");
-  const [unit, setUnit] = useState<GoalUnit>("km");
-  const [presetId, setPresetId] = useState<string>(NO_PROGRAM);
+  const [unit, setUnit] = useState<GoalUnit>(settings.distanceUnit);
+  const [presetId, setPresetId] = useState<string>(settings.defaultPresetId ?? NO_PROGRAM);
 
   const units = kind === "distance" ? DISTANCE_GOAL_UNITS : TIME_GOAL_UNITS;
   const valid = value.trim() !== "" && Number(value) > 0;
@@ -52,7 +53,7 @@ export default function RunSetup({ onStart }: { onStart: (config: RunConfig) => 
 
   function selectKind(next: GoalKind) {
     setKind(next);
-    setUnit(DEFAULT_UNIT[next]);
+    setUnit(next === "distance" ? settings.distanceUnit : settings.timeUnit);
   }
 
   function start() {

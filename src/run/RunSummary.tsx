@@ -17,6 +17,7 @@ import PressableScale from "../components/PressableScale";
 import { haptics } from "../haptics";
 import { MOMENTS } from "../program/catalog";
 import { fonts, useColors, radius, spacing, typography } from "../theme";
+import { useSettings } from "../settings/settings";
 import { useRuns } from "./runsStore";
 import { reverseGeocode } from "./place";
 import {
@@ -24,7 +25,6 @@ import {
   formatAvgPace,
   formatDistance,
   formatDuration,
-  paceUnitLabel,
   runDistanceUnit,
 } from "./format";
 import { Goal, RunRecording } from "./types";
@@ -40,9 +40,9 @@ type Props = {
 export default function RunSummary({ recording, goal, presetName, onDone }: Props) {
   const c = useColors();
   const { saveRun } = useRuns();
+  const { paceUnit } = useSettings();
   const styles = useStyles();
   const unit = runDistanceUnit(goal);
-  const paceUnit = paceUnitLabel(unit);
 
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
@@ -83,7 +83,7 @@ export default function RunSummary({ recording, goal, presetName, onDone }: Prop
           <Stat label="Time" value={formatDuration(recording.duration)} />
           <Stat
             label={`Pace (/${paceUnit})`}
-            value={formatAvgPace(recording.distance, recording.duration, unit)}
+            value={formatAvgPace(recording.distance, recording.duration, paceUnit)}
           />
         </View>
 
