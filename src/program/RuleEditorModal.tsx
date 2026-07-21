@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Keyboard,
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,8 +10,7 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Dropdown from "../components/Dropdown";
-import SheetView from "../components/SheetView";
-import { useKeyboardHeight } from "../hooks/useKeyboardHeight";
+import BottomSheetModal from "../components/BottomSheetModal";
 import { fonts, useColors, radius, spacing, typography } from "../theme";
 import {
   DISTANCE_UNITS,
@@ -92,7 +90,6 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
   const c = useColors();
   const styles = useStyles();
   const { sounds } = useStore();
-  const keyboardHeight = useKeyboardHeight();
 
   const [momentType, setMomentType] = useState<MomentType | null>(null);
   const [amount, setAmount] = useState("");
@@ -182,16 +179,14 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
   const soundOptions = sounds.map((s) => ({ label: s.name, value: s.id }));
 
   return (
-    <Modal
-      visible={visible}
-      animationType="fade"
-      transparent
-      onRequestClose={onClose}
-      onShow={() => Keyboard.dismiss()}
-    >
-      <View style={[styles.backdrop, { paddingBottom: keyboardHeight }]}>
-        <SheetView visible={visible} style={styles.sheet}>
-          <View style={styles.header}>
+    <>
+      <BottomSheetModal
+        visible={visible}
+        onClose={onClose}
+        sheetStyle={styles.sheet}
+        onShow={() => Keyboard.dismiss()}
+      >
+        <View style={styles.header}>
             <TouchableOpacity onPress={onClose} hitSlop={8}>
               <Text style={styles.cancel}>Cancel</Text>
             </TouchableOpacity>
@@ -337,9 +332,8 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
                 <Text style={styles.deleteText}>Delete moment</Text>
               </TouchableOpacity>
             ) : null}
-          </ScrollView>
-        </SheetView>
-      </View>
+        </ScrollView>
+      </BottomSheetModal>
 
       <SoundEditorModal
         visible={soundEditorFor !== null}
@@ -351,7 +345,7 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
           setSoundEditorFor(null);
         }}
       />
-    </Modal>
+    </>
   );
 }
 
@@ -359,11 +353,6 @@ function useStyles() {
   const c = useColors();
   return useMemo(() =>
     StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
   sheet: {
     maxHeight: "90%",
     backgroundColor: c.surface,

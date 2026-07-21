@@ -135,7 +135,7 @@ function useStyles() {
     justifyContent: "space-between",
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
-    paddingBottom: spacing.lg,
+    paddingBottom: spacing.xxl,
   },
   panel: {
     backgroundColor: c.overlay,

@@ -1,15 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  Modal,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import SheetView from "../components/SheetView";
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import BottomSheetModal from "../components/BottomSheetModal";
 import { fonts, radius, spacing, typography, useColors } from "../theme";
-import { useKeyboardHeight } from "../hooks/useKeyboardHeight";
 
 type Props = {
   visible: boolean;
@@ -21,7 +13,6 @@ type Props = {
 export default function PresetFormModal({ visible, onSubmit, onClose }: Props) {
   const c = useColors();
   const styles = useStyles();
-  const keyboardHeight = useKeyboardHeight();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
@@ -41,10 +32,8 @@ export default function PresetFormModal({ visible, onSubmit, onClose }: Props) {
   }
 
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <View style={[styles.backdrop, { paddingBottom: keyboardHeight }]}>
-        <SheetView visible={visible} style={styles.sheet}>
-          <View style={styles.header}>
+    <BottomSheetModal visible={visible} onClose={onClose} sheetStyle={styles.sheet}>
+      <View style={styles.header}>
             <TouchableOpacity onPress={onClose} hitSlop={8}>
               <Text style={styles.cancel}>Cancel</Text>
             </TouchableOpacity>
@@ -73,9 +62,7 @@ export default function PresetFormModal({ visible, onSubmit, onClose }: Props) {
             placeholder="What is this preset for?"
             placeholderTextColor={c.textFaint}
           />
-        </SheetView>
-      </View>
-    </Modal>
+    </BottomSheetModal>
   );
 }
 
@@ -83,11 +70,6 @@ function useStyles() {
   const c = useColors();
   return useMemo(() =>
     StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
   sheet: {
     backgroundColor: c.surface,
     borderTopLeftRadius: radius.lg,

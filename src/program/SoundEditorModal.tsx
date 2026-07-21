@@ -1,19 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Modal,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import RangeSlider from "../components/RangeSlider";
-import SheetView from "../components/SheetView";
-import { useKeyboardHeight } from "../hooks/useKeyboardHeight";
+import BottomSheetModal from "../components/BottomSheetModal";
 import { fonts, useColors, radius, spacing, typography } from "../theme";
 import { useStore } from "./store";
 import { Sound } from "./types";
@@ -29,7 +20,6 @@ export default function SoundEditorModal({ visible, onClose, onCreated }: Props)
   const c = useColors();
   const styles = useStyles();
   const { createSound } = useStore();
-  const keyboardHeight = useKeyboardHeight();
   const player = useAudioPlayer(undefined, { updateInterval: 50 });
   const status = useAudioPlayerStatus(player);
 
@@ -124,11 +114,8 @@ export default function SoundEditorModal({ visible, onClose, onCreated }: Props)
   }
 
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <GestureHandlerRootView style={styles.root}>
-      <View style={[styles.backdrop, { paddingBottom: keyboardHeight }]}>
-        <SheetView visible={visible} style={styles.sheet}>
-          <View style={styles.header}>
+    <BottomSheetModal visible={visible} onClose={onClose} sheetStyle={styles.sheet} gestureRoot>
+      <View style={styles.header}>
             <TouchableOpacity onPress={onClose} hitSlop={8}>
               <Text style={styles.cancel}>Cancel</Text>
             </TouchableOpacity>
@@ -190,10 +177,7 @@ export default function SoundEditorModal({ visible, onClose, onCreated }: Props)
           ) : sourceUri ? (
             <Text style={styles.loading}>Reading audio…</Text>
           ) : null}
-        </SheetView>
-      </View>
-      </GestureHandlerRootView>
-    </Modal>
+    </BottomSheetModal>
   );
 }
 
@@ -213,14 +197,6 @@ function useStyles() {
   const c = useColors();
   return useMemo(() =>
     StyleSheet.create({
-  root: {
-    flex: 1,
-  },
-  backdrop: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
   sheet: {
     backgroundColor: c.surface,
     borderTopLeftRadius: radius.lg,
