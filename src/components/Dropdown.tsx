@@ -8,7 +8,7 @@ import {
   View,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { radius, spacing, typography, useColors } from "../theme";
+import { fonts, radius, spacing, typography, useColors } from "../theme";
 
 export type DropdownOption = { label: string; value: string; description?: string };
 
@@ -148,7 +148,7 @@ function useStyles() {
   },
   rowText: {
     ...typography.body,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: c.text,
   },
   rowTextOn: {
@@ -156,7 +156,7 @@ function useStyles() {
   },
   rowDesc: {
     ...typography.label,
-    fontWeight: "500",
+    fontFamily: fonts.medium,
     color: c.textMuted,
     flexShrink: 1,
   },
@@ -166,7 +166,7 @@ function useStyles() {
   },
   footerText: {
     ...typography.body,
-    fontWeight: "600",
+    fontFamily: fonts.semibold,
     color: c.primary,
   },
     }), [c]);

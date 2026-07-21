@@ -12,14 +12,19 @@ import { Goal, RunRecording, SavedRun } from "./types";
 let counter = 0;
 const genId = () => `run-${Date.now().toString(36)}-${counter++}`;
 
+/** Optional fields captured when a run is saved. */
+type SaveExtras = { title?: string; notes?: string; place?: string };
+
 interface RunsValue {
   ready: boolean;
   runs: SavedRun[];
   saveRun: (
     recording: RunRecording,
     goal: Goal,
-    presetName: string | null
+    presetName: string | null,
+    extras?: SaveExtras
   ) => SavedRun;
+  updateRun: (id: string, patch: Pick<SavedRun, "title" | "notes">) => void;
   deleteRun: (id: string) => void;
 }
 
@@ -47,13 +52,16 @@ export function RunsProvider({ children }: { children: ReactNode }) {
   }, [ready, runs]);
 
   const saveRun = useCallback(
-    (recording: RunRecording, goal: Goal, presetName: string | null) => {
+    (recording: RunRecording, goal: Goal, presetName: string | null, extras?: SaveExtras) => {
       const run: SavedRun = {
         ...recording,
         id: genId(),
         date: new Date().toISOString(),
         goal,
         presetName,
+        title: extras?.title?.trim() || undefined,
+        notes: extras?.notes?.trim() || undefined,
+        place: extras?.place || undefined,
       };
       setRuns((prev) => [run, ...prev]);
       return run;
@@ -61,12 +69,22 @@ export function RunsProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  const updateRun = useCallback((id: string, patch: Pick<SavedRun, "title" | "notes">) => {
+    setRuns((prev) =>
+      prev.map((r) =>
+        r.id === id
+          ? { ...r, title: patch.title?.trim() || undefined, notes: patch.notes?.trim() || undefined }
+          : r
+      )
+    );
+  }, []);
+
   const deleteRun = useCallback((id: string) => {
     setRuns((prev) => prev.filter((r) => r.id !== id));
   }, []);
 
   return (
-    <RunsContext.Provider value={{ ready, runs, saveRun, deleteRun }}>
+    <RunsContext.Provider value={{ ready, runs, saveRun, updateRun, deleteRun }}>
       {children}
     </RunsContext.Provider>
   );

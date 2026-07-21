@@ -52,6 +52,12 @@ export interface SavedRun extends RunRecording {
   date: string; // ISO timestamp
   goal: Goal;
   presetName: string | null;
+  /** User-given name for the run; falls back to a generated title. */
+  title?: string;
+  /** Free-form notes the user added about the run. */
+  notes?: string;
+  /** Reverse-geocoded general area, e.g. "Lynnwood, Washington". */
+  place?: string;
 }
 
 export const DISTANCE_GOAL_UNITS: DistanceGoalUnit[] = ["mi", "km", "m"];

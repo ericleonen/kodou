@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { radius, spacing, typography, useColors } from "../theme";
+import { fonts, radius, spacing, typography, useColors } from "../theme";
 import { useKeyboardHeight } from "../hooks/useKeyboardHeight";
 
 type Props = {
@@ -112,7 +112,7 @@ function useStyles() {
   },
   save: {
     ...typography.body,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: c.primary,
   },
   saveDisabled: {

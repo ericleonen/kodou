@@ -68,6 +68,7 @@ export function useColors(): Colors {
 }
 
 export const spacing = {
+  xxs: 2,
   xs: 4,
   sm: 8,
   md: 16,
@@ -76,16 +77,45 @@ export const spacing = {
   xxl: 48,
 } as const;
 
+/** Sharper than before: cards read as md, chips/CTAs as pill. */
 export const radius = {
-  sm: 8,
-  md: 16,
-  lg: 24,
+  sm: 6,
+  md: 10,
+  lg: 16,
   pill: 999,
 } as const;
 
+/** Shared timings + spring so motion across the app feels like one system. */
+export const motion = {
+  fast: 150,
+  base: 220,
+  slow: 320,
+  spring: { damping: 18, stiffness: 220, mass: 0.9 },
+} as const;
+
+/**
+ * Font families. Text is Inter; big numbers/titles use Barlow Semi
+ * Condensed for a tighter, sportier stat look. Custom fonts don't respond
+ * to `fontWeight`, so each weight is its own family and styles set
+ * `fontFamily` directly (see the `fonts` token) instead of a weight.
+ */
+export const fonts = {
+  regular: "Inter_400Regular",
+  medium: "Inter_500Medium",
+  semibold: "Inter_600SemiBold",
+  bold: "Inter_700Bold",
+  extrabold: "Inter_800ExtraBold",
+  display: "BarlowSemiCondensed_700Bold",
+  displayHeavy: "BarlowSemiCondensed_800ExtraBold",
+} as const;
+
 export const typography = {
-  title: { fontSize: 34, fontWeight: "800" as const, letterSpacing: 0.5 },
-  heading: { fontSize: 22, fontWeight: "700" as const },
-  body: { fontSize: 16, fontWeight: "400" as const },
-  label: { fontSize: 13, fontWeight: "600" as const, letterSpacing: 0.3 },
+  /** Oversized stat numbers (pace, distance) — condensed + heavy. */
+  display: { fontSize: 48, fontFamily: fonts.displayHeavy, letterSpacing: 0.5 },
+  title: { fontSize: 30, fontFamily: fonts.extrabold, letterSpacing: 0.2 },
+  heading: { fontSize: 20, fontFamily: fonts.bold, letterSpacing: 0.1 },
+  body: { fontSize: 16, fontFamily: fonts.regular },
+  bodyStrong: { fontSize: 16, fontFamily: fonts.semibold },
+  label: { fontSize: 13, fontFamily: fonts.semibold, letterSpacing: 0.3 },
+  caption: { fontSize: 12, fontFamily: fonts.medium, letterSpacing: 0.2 },
 };

@@ -3,7 +3,9 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-nati
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import CircularProgress from "../components/CircularProgress";
-import { radius, spacing, typography, useColors } from "../theme";
+import ActionSheet from "../components/ActionSheet";
+import { confirmDelete } from "../components/confirmDelete";
+import { fonts, radius, spacing, typography, useColors } from "../theme";
 import { useStore } from "./store";
 import SoundEditorModal from "./SoundEditorModal";
 import { Sound } from "./types";
@@ -12,11 +14,12 @@ import { Sound } from "./types";
 export default function SoundsScreen() {
   const c = useColors();
   const styles = useStyles();
-  const { sounds, deleteSound } = useStore();
+  const { sounds, renameSound, deleteSound } = useStore();
   const player = useAudioPlayer(undefined, { updateInterval: 50 });
   const status = useAudioPlayerStatus(player);
 
   const [editorOpen, setEditorOpen] = useState(false);
+  const [menuFor, setMenuFor] = useState<Sound | null>(null);
   const [playingId, setPlayingId] = useState<string | null>(null);
   // See SoundEditorModal: guards against a stale currentTime stopping
   // playback immediately after a seek.
@@ -79,12 +82,12 @@ export default function SoundsScreen() {
                   </Text>
                   <Text style={styles.meta}>{formatTime(sound.end - sound.start)}</Text>
                 </View>
-                <TouchableOpacity onPress={() => deleteSound(sound.id)} hitSlop={8}>
-                  <MaterialCommunityIcons
-                    name="trash-can-outline"
-                    size={20}
-                    color={c.textMuted}
-                  />
+                <TouchableOpacity
+                  onPress={() => setMenuFor(sound)}
+                  hitSlop={8}
+                  accessibilityLabel="Sound options"
+                >
+                  <MaterialCommunityIcons name="dots-vertical" size={22} color={c.textMuted} />
                 </TouchableOpacity>
               </View>
             );
@@ -102,6 +105,34 @@ export default function SoundsScreen() {
       </ScrollView>
 
       <SoundEditorModal visible={editorOpen} onClose={() => setEditorOpen(false)} />
+
+      <ActionSheet
+        visible={menuFor !== null}
+        onClose={() => setMenuFor(null)}
+        title={menuFor?.name}
+        rename={
+          menuFor
+            ? {
+                label: "Rename",
+                initialValue: menuFor.name,
+                placeholder: "Sound name",
+                onSubmit: (name) => renameSound(menuFor.id, name),
+              }
+            : undefined
+        }
+        actions={
+          menuFor
+            ? [
+                {
+                  label: "Delete",
+                  icon: "trash-can-outline",
+                  destructive: true,
+                  onPress: () => confirmDelete("sound", () => deleteSound(menuFor.id)),
+                },
+              ]
+            : []
+        }
+      />
     </>
   );
 }
@@ -141,7 +172,7 @@ function useStyles() {
   },
   name: {
     ...typography.body,
-    fontWeight: "600",
+    fontFamily: fonts.semibold,
     color: c.text,
   },
   meta: {
@@ -162,7 +193,7 @@ function useStyles() {
   },
   addText: {
     ...typography.body,
-    fontWeight: "600",
+    fontFamily: fonts.semibold,
     color: c.textMuted,
   },
     }), [c]);

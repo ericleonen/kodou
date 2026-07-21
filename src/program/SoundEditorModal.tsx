@@ -13,7 +13,7 @@ import * as DocumentPicker from "expo-document-picker";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import RangeSlider from "../components/RangeSlider";
 import { useKeyboardHeight } from "../hooks/useKeyboardHeight";
-import { useColors, radius, spacing, typography } from "../theme";
+import { fonts, useColors, radius, spacing, typography } from "../theme";
 import { useStore } from "./store";
 import { Sound } from "./types";
 
@@ -244,7 +244,7 @@ function useStyles() {
   },
   saveBtn: {
     ...typography.body,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: c.primary,
   },
   disabled: {
@@ -300,7 +300,7 @@ function useStyles() {
   },
   previewText: {
     ...typography.body,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: c.primary,
   },
   loading: {

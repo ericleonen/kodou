@@ -2,7 +2,9 @@ import { useMemo, useState } from "react";
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Dropdown from "../components/Dropdown";
 import RunMap from "../components/RunMap";
-import { useColors, radius, spacing, typography } from "../theme";
+import PressableScale from "../components/PressableScale";
+import { haptics } from "../haptics";
+import { fonts, useColors, radius, spacing, typography } from "../theme";
 import { useStore } from "../program/store";
 import {
   DISTANCE_GOAL_UNITS,
@@ -61,10 +63,7 @@ export default function RunSetup({ onStart }: { onStart: (config: RunConfig) => 
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Run</Text>
-      <Text style={styles.subtitle}>Set a goal and choose a program.</Text>
-
-      <View style={styles.section}>
+      <View style={[styles.section, styles.firstSection]}>
         <Text style={styles.label}>Goal</Text>
         <View style={styles.segmented}>
           <Segment label="Distance" active={kind === "distance"} onPress={() => selectKind("distance")} />
@@ -100,14 +99,14 @@ export default function RunSetup({ onStart }: { onStart: (config: RunConfig) => 
         <RunMap live style={StyleSheet.absoluteFill} />
       </View>
 
-      <TouchableOpacity
+      <PressableScale
         style={[styles.startButton, !valid && styles.startDisabled]}
         onPress={start}
         disabled={!valid}
-        activeOpacity={0.85}
+        haptic={haptics.medium}
       >
         <Text style={styles.startText}>Start run</Text>
-      </TouchableOpacity>
+      </PressableScale>
     </View>
   );
 }
@@ -143,18 +142,12 @@ function useStyles() {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
   },
-  title: {
-    ...typography.title,
-    color: c.text,
-  },
-  subtitle: {
-    ...typography.body,
-    color: c.textMuted,
-    marginTop: spacing.xs,
-  },
   section: {
     marginTop: spacing.xl,
     gap: spacing.sm,
+  },
+  firstSection: {
+    marginTop: spacing.sm,
   },
   label: {
     ...typography.label,
@@ -179,7 +172,7 @@ function useStyles() {
   },
   segmentText: {
     ...typography.body,
-    fontWeight: "600",
+    fontFamily: fonts.semibold,
     color: c.textMuted,
   },
   segmentTextActive: {
@@ -192,7 +185,7 @@ function useStyles() {
   },
   input: {
     ...typography.body,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: c.text,
     backgroundColor: c.surfaceAlt,
     borderRadius: radius.sm,
@@ -210,7 +203,7 @@ function useStyles() {
   },
   errorText: {
     ...typography.label,
-    fontWeight: "500",
+    fontFamily: fonts.medium,
     color: c.danger,
   },
   mapWrap: {
@@ -233,7 +226,7 @@ function useStyles() {
   },
   startText: {
     ...typography.body,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: "#ffffff",
     fontSize: 17,
   },

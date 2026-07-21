@@ -11,7 +11,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Dropdown from "../components/Dropdown";
 import { useKeyboardHeight } from "../hooks/useKeyboardHeight";
-import { useColors, radius, spacing, typography } from "../theme";
+import { fonts, useColors, radius, spacing, typography } from "../theme";
 import {
   DISTANCE_UNITS,
   MOMENTS,
@@ -381,7 +381,7 @@ function useStyles() {
   },
   saveBtn: {
     ...typography.body,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: c.primary,
   },
   disabled: {
@@ -414,7 +414,7 @@ function useStyles() {
   },
   momentChipText: {
     ...typography.label,
-    fontWeight: "500",
+    fontFamily: fonts.medium,
     color: c.textMuted,
   },
   momentChipTextOn: {
@@ -439,7 +439,7 @@ function useStyles() {
   },
   numberInput: {
     ...typography.body,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: c.text,
     backgroundColor: c.background,
     borderWidth: 1,
@@ -455,7 +455,7 @@ function useStyles() {
   },
   errorText: {
     ...typography.label,
-    fontWeight: "500",
+    fontFamily: fonts.medium,
     color: c.danger,
     marginTop: spacing.xs,
   },
@@ -498,7 +498,7 @@ function useStyles() {
   },
   kindText: {
     ...typography.label,
-    fontWeight: "500",
+    fontFamily: fonts.medium,
     color: c.textMuted,
   },
   kindTextOn: {
@@ -529,7 +529,7 @@ function useStyles() {
   },
   deleteText: {
     ...typography.body,
-    fontWeight: "600",
+    fontFamily: fonts.semibold,
     color: c.danger,
   },
     }), [c]);

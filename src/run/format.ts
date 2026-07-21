@@ -1,4 +1,11 @@
-import { DistanceGoalUnit, Goal, metersToDistanceUnit } from "./types";
+import {
+  DistanceGoalUnit,
+  Goal,
+  goalDistanceMeters,
+  goalDurationSeconds,
+  metersToDistanceUnit,
+  SavedRun,
+} from "./types";
 
 export function formatDuration(seconds: number): string {
   const total = Math.max(0, Math.round(seconds));
@@ -39,4 +46,54 @@ export function formatRunDate(iso: string): string {
     month: "short",
     day: "numeric",
   });
+}
+
+/** Time of day a run took place, e.g. "7:30 AM". */
+export function formatRunTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+/** The goal target as a short label, e.g. "5 km" or "30 min". */
+export function formatGoalTarget(goal: Goal): string {
+  return `${goal.value} ${goal.unit}`;
+}
+
+/** Whether the run met its goal (distance covered, or time elapsed). */
+export function isGoalReached(run: SavedRun): boolean {
+  if (run.goal.kind === "distance") {
+    return run.distance >= goalDistanceMeters(run.goal) * 0.999;
+  }
+  return run.duration >= goalDurationSeconds(run.goal) * 0.999;
+}
+
+/**
+ * How the run measured up to its goal: for a met goal, what it took to get
+ * there; otherwise how far it got.
+ */
+export function runAchievement(run: SavedRun): string {
+  const unit = runDistanceUnit(run.goal);
+  const reached = isGoalReached(run);
+  if (run.goal.kind === "distance") {
+    return reached
+      ? `Finished in ${formatDuration(run.duration)}`
+      : `Reached ${formatDistance(run.distance, unit)} of ${run.goal.value} ${unit}`;
+  }
+  return reached
+    ? `Covered ${formatDistance(run.distance, unit)} ${unit}`
+    : `Ran ${formatDuration(run.duration)} of ${formatGoalTarget(run.goal)}`;
+}
+
+/** A generated title based on the time of day, e.g. "Morning run". */
+export function defaultRunTitle(iso: string): string {
+  const h = new Date(iso).getHours();
+  const part = h < 12 ? "Morning" : h < 17 ? "Afternoon" : h < 21 ? "Evening" : "Night";
+  return `${part} run`;
+}
+
+/** The run's display title: the user's, or a generated fallback. */
+export function runTitle(run: SavedRun): string {
+  return run.title?.trim() || defaultRunTitle(run.date);
 }

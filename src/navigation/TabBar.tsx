@@ -3,6 +3,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { spacing, typography, useColors } from "../theme";
+import { haptics } from "../haptics";
 
 export type TabKey = "program" | "run" | "you";
 
@@ -36,7 +37,10 @@ export default function TabBar({ active, onChange }: Props) {
           <TouchableOpacity
             key={tab.key}
             style={styles.tab}
-            onPress={() => onChange(tab.key)}
+            onPress={() => {
+              if (!focused) haptics.select();
+              onChange(tab.key);
+            }}
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityState={{ selected: focused }}

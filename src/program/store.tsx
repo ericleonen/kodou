@@ -31,6 +31,7 @@ interface StoreValue {
   presets: Preset[];
   sounds: Sound[];
   createPreset: (name: string, description?: string) => string;
+  renamePreset: (id: string, name: string) => void;
   deletePreset: (id: string) => void;
   reorderPresets: (from: number, to: number) => void;
   addRule: (presetId: string, rule: RuleDraft) => void;
@@ -39,6 +40,7 @@ interface StoreValue {
   reorderRules: (presetId: string, from: number, to: number) => void;
   /** Persists a finished sound (copies its file locally) and returns it. */
   createSound: (draft: SoundDraft) => Promise<Sound>;
+  renameSound: (id: string, name: string) => void;
   deleteSound: (id: string) => void;
   soundName: (id: string) => string | undefined;
 }
@@ -86,6 +88,10 @@ export function ProgramStoreProvider({ children }: { children: ReactNode }) {
     const id = genId("preset");
     setPresets((prev) => [...prev, { id, name, description, rules: [] }]);
     return id;
+  }, []);
+
+  const renamePreset = useCallback((id: string, name: string) => {
+    setPresets((prev) => prev.map((p) => (p.id === id ? { ...p, name } : p)));
   }, []);
 
   const deletePreset = useCallback((id: string) => {
@@ -145,6 +151,10 @@ export function ProgramStoreProvider({ children }: { children: ReactNode }) {
     return sound;
   }, []);
 
+  const renameSound = useCallback((id: string, name: string) => {
+    setSounds((prev) => prev.map((s) => (s.id === id ? { ...s, name } : s)));
+  }, []);
+
   const deleteSound = useCallback((id: string) => {
     setSounds((prev) => {
       const target = prev.find((s) => s.id === id);
@@ -164,6 +174,7 @@ export function ProgramStoreProvider({ children }: { children: ReactNode }) {
         presets,
         sounds,
         createPreset,
+        renamePreset,
         deletePreset,
         reorderPresets,
         addRule,
@@ -171,6 +182,7 @@ export function ProgramStoreProvider({ children }: { children: ReactNode }) {
         deleteRule,
         reorderRules,
         createSound,
+        renameSound,
         deleteSound,
         soundName,
       }}

@@ -1,19 +1,32 @@
 import { ReactNode, useMemo, useState } from "react";
 import {
   Alert,
+  KeyboardAvoidingView,
   LayoutChangeEvent,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import PaceChart from "../components/PaceChart";
 import RunMap from "../components/RunMap";
+import PressableScale from "../components/PressableScale";
+import { haptics } from "../haptics";
 import { MOMENTS } from "../program/catalog";
-import { useColors, radius, spacing, typography } from "../theme";
+import { fonts, useColors, radius, spacing, typography } from "../theme";
 import { useRuns } from "./runsStore";
-import { formatAvgPace, formatDistance, formatDuration, paceUnitLabel, runDistanceUnit } from "./format";
+import { reverseGeocode } from "./place";
+import {
+  defaultRunTitle,
+  formatAvgPace,
+  formatDistance,
+  formatDuration,
+  paceUnitLabel,
+  runDistanceUnit,
+} from "./format";
 import { Goal, RunRecording } from "./types";
 
 type Props = {
@@ -25,15 +38,24 @@ type Props = {
 
 /** Post-run screen: review the route and pace, then save or discard. */
 export default function RunSummary({ recording, goal, presetName, onDone }: Props) {
+  const c = useColors();
   const { saveRun } = useRuns();
   const styles = useStyles();
   const unit = runDistanceUnit(goal);
   const paceUnit = paceUnitLabel(unit);
 
+  const [title, setTitle] = useState("");
+  const [notes, setNotes] = useState("");
+
   const paceMarkers = recording.events.map((e) => ({ icon: MOMENTS[e.type].icon, t: e.t }));
 
-  function handleSave() {
-    saveRun(recording, goal, presetName);
+  async function handleSave() {
+    const place = recording.path[0] ? await reverseGeocode(recording.path[0]) : null;
+    saveRun(recording, goal, presetName, {
+      title,
+      notes,
+      place: place ?? undefined,
+    });
     onDone();
   }
 
@@ -45,8 +67,15 @@ export default function RunSummary({ recording, goal, presetName, onDone }: Prop
   }
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.title}>Run complete</Text>
 
         <View style={styles.stats}>
@@ -58,6 +87,27 @@ export default function RunSummary({ recording, goal, presetName, onDone }: Prop
           />
         </View>
 
+        <Text style={styles.fieldLabel}>Title</Text>
+        <TextInput
+          style={styles.input}
+          value={title}
+          onChangeText={setTitle}
+          placeholder={defaultRunTitle(new Date().toISOString())}
+          placeholderTextColor={c.textFaint}
+          maxLength={80}
+          returnKeyType="done"
+        />
+
+        <Text style={styles.fieldLabel}>Notes</Text>
+        <TextInput
+          style={[styles.input, styles.notesInput]}
+          value={notes}
+          onChangeText={setNotes}
+          placeholder="How did it go?"
+          placeholderTextColor={c.textFaint}
+          multiline
+        />
+
         <Text style={styles.cardLabel}>Route</Text>
         <View style={styles.mapCard}>
           <RunMap path={recording.path} style={StyleSheet.absoluteFill} />
@@ -65,21 +115,27 @@ export default function RunSummary({ recording, goal, presetName, onDone }: Prop
 
         <Text style={styles.cardLabel}>Pace</Text>
         <View style={styles.card}>
-          <Measured height={110}>
+          <Measured height={160}>
             {(w) => (
-              <PaceChart samples={recording.samples} markers={paceMarkers} width={w} height={110} />
+              <PaceChart
+                samples={recording.samples}
+                markers={paceMarkers}
+                paceUnit={paceUnit}
+                width={w}
+                height={160}
+              />
             )}
           </Measured>
         </View>
 
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave} activeOpacity={0.85}>
+        <PressableScale style={styles.saveButton} onPress={handleSave} haptic={haptics.success}>
           <Text style={styles.saveText}>Save run</Text>
-        </TouchableOpacity>
+        </PressableScale>
         <TouchableOpacity style={styles.discardButton} onPress={handleDiscard} activeOpacity={0.7}>
           <Text style={styles.discardText}>Discard</Text>
         </TouchableOpacity>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -134,9 +190,30 @@ function useStyles() {
     marginBottom: spacing.xs,
   },
   statValue: {
-    ...typography.heading,
+    ...typography.display,
+    fontSize: 28,
     color: c.text,
     fontVariant: ["tabular-nums"],
+  },
+  fieldLabel: {
+    ...typography.label,
+    textTransform: "uppercase",
+    color: c.textMuted,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  input: {
+    ...typography.body,
+    color: c.text,
+    backgroundColor: c.surface,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  notesInput: {
+    minHeight: 84,
+    textAlignVertical: "top",
+    paddingTop: spacing.sm,
   },
   cardLabel: {
     ...typography.label,
@@ -165,7 +242,7 @@ function useStyles() {
   },
   saveText: {
     ...typography.body,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: "#ffffff",
     fontSize: 17,
   },
@@ -176,7 +253,7 @@ function useStyles() {
   },
   discardText: {
     ...typography.body,
-    fontWeight: "600",
+    fontFamily: fonts.semibold,
     color: c.textMuted,
   },
     }), [c]);

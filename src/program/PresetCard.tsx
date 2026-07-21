@@ -1,7 +1,9 @@
 import { useMemo } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { radius, spacing, typography, useColors } from "../theme";
+import PressableScale from "../components/PressableScale";
+import { haptics } from "../haptics";
 import { MOMENTS } from "./catalog";
 import { Preset } from "./types";
 
@@ -22,12 +24,12 @@ export default function PresetCard({
   const styles = useStyles();
   const count = preset.rules.length;
   return (
-    <TouchableOpacity
+    <PressableScale
       style={styles.card}
       onPress={onPress}
       onLongPress={onLongPress}
       delayLongPress={200}
-      activeOpacity={0.7}
+      haptic={haptics.select}
     >
       <View style={styles.top}>
         <View style={styles.info}>
@@ -54,7 +56,7 @@ export default function PresetCard({
           {count} {count === 1 ? "moment" : "moments"}
         </Text>
       </View>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 

@@ -1,7 +1,9 @@
 import { useMemo } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { radius, spacing, typography, useColors } from "../theme";
+import { fonts, radius, spacing, typography, useColors } from "../theme";
+import PressableScale from "../components/PressableScale";
+import { haptics } from "../haptics";
 import { MOMENTS, RESPONSES, describeMoment, describeResponse } from "./catalog";
 import { useStore } from "./store";
 import { Rule } from "./types";
@@ -27,12 +29,12 @@ export default function RuleCard({
   const moment = MOMENTS[rule.moment.type];
 
   return (
-    <TouchableOpacity
+    <PressableScale
       style={[styles.card, highlighted && styles.cardHighlighted]}
       onPress={onPress}
       onLongPress={onLongPress}
       delayLongPress={200}
-      activeOpacity={0.7}
+      haptic={haptics.select}
       disabled={!onPress}
     >
       <View style={styles.momentRow}>
@@ -62,7 +64,7 @@ export default function RuleCard({
           </View>
         ))}
       </View>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -89,7 +91,7 @@ function useStyles() {
   },
   momentText: {
     ...typography.body,
-    fontWeight: "600",
+    fontFamily: fonts.semibold,
     color: c.text,
     flex: 1,
   },

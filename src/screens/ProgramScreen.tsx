@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -9,7 +8,7 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ReorderableList, { useReorderableDrag } from "react-native-reorderable-list";
-import { useColors, radius, spacing, typography } from "../theme";
+import { fonts, useColors, radius, spacing, typography } from "../theme";
 import { useStore } from "../program/store";
 import { useTestRunner } from "../program/useTestRunner";
 import { CriticalMoment, Preset, Rule, RuleResponse } from "../program/types";
@@ -18,6 +17,10 @@ import RuleCard from "../program/RuleCard";
 import PresetFormModal from "../program/PresetFormModal";
 import RuleEditorModal from "../program/RuleEditorModal";
 import SoundsScreen from "../program/SoundsScreen";
+import ActionSheet from "../components/ActionSheet";
+import SwipeBackView from "../components/SwipeBackView";
+import { confirmDelete } from "../components/confirmDelete";
+import { useBackHandler } from "../hooks/useBackHandler";
 
 type RuleData = { moment: CriticalMoment; responses: RuleResponse[] };
 type Tab = "presets" | "sounds";
@@ -63,22 +66,19 @@ export default function ProgramScreen() {
 
   function handleDeleteRule() {
     if (!selected || !editor?.rule) return;
-    deleteRule(selected.id, editor.rule.id);
-    setEditor(null);
+    const { id: presetId } = selected;
+    const ruleId = editor.rule.id;
+    confirmDelete("moment", () => {
+      deleteRule(presetId, ruleId);
+      setEditor(null);
+    });
   }
 
   function confirmDeletePreset(preset: Preset) {
-    Alert.alert("Delete preset", `Delete "${preset.name}"? This can't be undone.`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => {
-          setSelectedId(null);
-          deletePreset(preset.id);
-        },
-      },
-    ]);
+    confirmDelete("preset", () => {
+      setSelectedId(null);
+      deletePreset(preset.id);
+    });
   }
 
   if (!store.ready) {
@@ -114,8 +114,7 @@ export default function ProgramScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Program</Text>
-      <View style={styles.segmented}>
+      <View style={[styles.segmented, styles.segmentedTop]}>
         <SegmentButton label="Presets" active={tab === "presets"} onPress={() => setTab("presets")} />
         <SegmentButton label="Sounds" active={tab === "sounds"} onPress={() => setTab("sounds")} />
       </View>
@@ -203,53 +202,44 @@ function PresetDetail({
 }) {
   const c = useColors();
   const styles = useStyles();
-  const { sounds } = useStore();
+  const { sounds, renamePreset } = useStore();
   const { activeRuleId, running, start, stop } = useTestRunner(preset.rules, sounds);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useBackHandler(onBack);
+
+  const hasRules = preset.rules.length > 0;
 
   return (
-    <>
+    <SwipeBackView onBack={onBack}>
       <View style={styles.detailHeader}>
         <View style={styles.detailTop}>
           <TouchableOpacity style={styles.back} onPress={onBack} activeOpacity={0.7} hitSlop={8}>
             <MaterialCommunityIcons name="chevron-left" size={22} color={c.textMuted} />
             <Text style={styles.backText}>Presets</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={onDelete} hitSlop={8}>
-            <MaterialCommunityIcons name="trash-can-outline" size={20} color={c.textMuted} />
+          <TouchableOpacity
+            onPress={() => setMenuOpen(true)}
+            hitSlop={8}
+            accessibilityLabel="Preset options"
+          >
+            <MaterialCommunityIcons name="dots-vertical" size={22} color={c.textMuted} />
           </TouchableOpacity>
         </View>
-        <View style={styles.titleRow}>
-          <View style={styles.titleCol}>
-            <Text style={styles.title}>{preset.name}</Text>
-            {preset.description ? (
-              <Text style={styles.subtitle}>{preset.description}</Text>
-            ) : null}
-          </View>
-          <View style={styles.headerActions}>
-            {preset.rules.length > 0 ? (
-              <TouchableOpacity
-                style={[styles.actionCircle, styles.testCircle]}
-                onPress={running ? stop : start}
-                activeOpacity={0.7}
-                accessibilityLabel={running ? "Stop test" : "Test preset"}
-              >
-                <MaterialCommunityIcons
-                  name={running ? "stop" : "play"}
-                  size={22}
-                  color={c.success}
-                />
-              </TouchableOpacity>
-            ) : null}
-            <TouchableOpacity
-              style={[styles.actionCircle, styles.addCircle]}
-              onPress={onAddRule}
-              activeOpacity={0.7}
-              accessibilityLabel="Add moment"
-            >
-              <MaterialCommunityIcons name="plus" size={24} color={c.primary} />
-            </TouchableOpacity>
-          </View>
+        <View style={styles.titleCol}>
+          <Text style={styles.title}>{preset.name}</Text>
+          {preset.description ? <Text style={styles.subtitle}>{preset.description}</Text> : null}
         </View>
+        {running ? (
+          <TouchableOpacity style={styles.simBanner} onPress={stop} activeOpacity={0.8}>
+            <View style={styles.simDot} />
+            <Text style={styles.simText}>Simulating…</Text>
+            <View style={styles.simStop}>
+              <MaterialCommunityIcons name="stop" size={16} color={c.success} />
+              <Text style={styles.simStopText}>Stop</Text>
+            </View>
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       <ReorderableList
@@ -261,7 +251,12 @@ function PresetDetail({
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <Text style={styles.empty}>No moments yet. Add one to start programming.</Text>
+          <Text style={[styles.empty, styles.itemSpacing]}>
+            No moments yet. Add one to start programming.
+          </Text>
+        }
+        ListFooterComponent={
+          <SecondaryButton icon="plus" label="Add moment" onPress={onAddRule} />
         }
         renderItem={({ item }) => (
           <DraggableRule
@@ -271,7 +266,36 @@ function PresetDetail({
           />
         )}
       />
-    </>
+
+      <ActionSheet
+        visible={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        title={preset.name}
+        rename={{
+          label: "Rename",
+          initialValue: preset.name,
+          placeholder: "Preset name",
+          onSubmit: (name) => renamePreset(preset.id, name),
+        }}
+        actions={[
+          ...(hasRules
+            ? [
+                {
+                  label: running ? "Stop simulation" : "Simulate preset",
+                  icon: (running ? "stop" : "play") as keyof typeof MaterialCommunityIcons.glyphMap,
+                  onPress: running ? stop : start,
+                },
+              ]
+            : []),
+          {
+            label: "Delete preset",
+            icon: "trash-can-outline" as keyof typeof MaterialCommunityIcons.glyphMap,
+            destructive: true,
+            onPress: onDelete,
+          },
+        ]}
+      />
+    </SwipeBackView>
   );
 }
 
@@ -350,32 +374,40 @@ function useStyles() {
     ...typography.label,
     color: c.textMuted,
   },
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-  },
   titleCol: {
-    flex: 1,
     gap: spacing.xs,
   },
-  headerActions: {
+  simBanner: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-  },
-  actionCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  testCircle: {
     backgroundColor: "rgba(61, 214, 140, 0.14)",
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.md,
   },
-  addCircle: {
-    backgroundColor: c.primarySoft,
+  simDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: c.success,
+  },
+  simText: {
+    ...typography.label,
+    fontFamily: fonts.semibold,
+    color: c.text,
+    flex: 1,
+  },
+  simStop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  simStopText: {
+    ...typography.label,
+    fontFamily: fonts.bold,
+    color: c.success,
   },
   title: {
     ...typography.title,
@@ -394,6 +426,9 @@ function useStyles() {
     marginTop: spacing.md,
     marginBottom: spacing.md,
   },
+  segmentedTop: {
+    marginTop: spacing.sm,
+  },
   segment: {
     flex: 1,
     alignItems: "center",
@@ -405,7 +440,7 @@ function useStyles() {
   },
   segmentText: {
     ...typography.body,
-    fontWeight: "600",
+    fontFamily: fonts.semibold,
     color: c.textMuted,
   },
   segmentTextActive: {
@@ -440,7 +475,7 @@ function useStyles() {
   },
   secondaryText: {
     ...typography.body,
-    fontWeight: "600",
+    fontFamily: fonts.semibold,
     color: c.textMuted,
   },
     }), [c]);

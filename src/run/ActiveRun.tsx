@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import RunMap from "../components/RunMap";
-import { radius, spacing, typography, useColors } from "../theme";
+import { fonts, radius, spacing, typography, useColors } from "../theme";
 import { useStore } from "../program/store";
 import { finishRun, pauseRun, resumeRun, useRunEngine } from "./runEngine";
 import {
@@ -17,7 +17,7 @@ export default function ActiveRun() {
   const c = useColors();
   const styles = useStyles();
   const { presets } = useStore();
-  const { config, distance, elapsed, speed, paused, error } = useRunEngine();
+  const { config, distance, elapsed, paused, error } = useRunEngine();
 
   if (!config) return null;
 
@@ -29,9 +29,9 @@ export default function ActiveRun() {
   const paceUnit = distanceUnit === "mi" ? "mi" : "km";
   const distanceInUnit = metersToDistanceUnit(distance, distanceUnit);
 
-  // Current (smoothed) pace: seconds per mi/km from the smoothed speed.
+  // Average pace: total time over total distance, in seconds per mi/km.
   const paceMeters = paceUnit === "mi" ? 1609.344 : 1000;
-  const paceSec = speed > 0.3 ? paceMeters / speed : null;
+  const paceSec = distance > 20 ? elapsed / (distance / paceMeters) : null;
 
   let progress = 0;
   let remainingLabel = "";
@@ -116,7 +116,7 @@ export default function ActiveRun() {
         </View>
       ) : (
         <TouchableOpacity style={styles.pauseButton} onPress={pauseRun} activeOpacity={0.85}>
-          <MaterialCommunityIcons name="pause" size={40} color={c.text} />
+          <MaterialCommunityIcons name="pause" size={20} color={c.text} />
           <Text style={styles.pauseLabel}>Pause</Text>
         </TouchableOpacity>
       )}
@@ -180,7 +180,7 @@ function useStyles() {
     ...typography.label,
     textTransform: "uppercase",
     color: c.textMuted,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
   },
   metrics: {
     marginTop: spacing.xxl,
@@ -199,13 +199,14 @@ function useStyles() {
     marginBottom: spacing.xs,
   },
   metricValue: {
-    ...typography.title,
+    ...typography.display,
+    fontSize: 40,
     color: c.text,
     fontVariant: ["tabular-nums"],
   },
   metricValueBig: {
-    fontSize: 72,
-    fontWeight: "800",
+    fontSize: 84,
+    lineHeight: 84,
   },
   goalCard: {
     marginTop: spacing.xxl,
@@ -221,7 +222,7 @@ function useStyles() {
   },
   goalLabel: {
     ...typography.body,
-    fontWeight: "600",
+    fontFamily: fonts.semibold,
     color: c.text,
   },
   goalRemaining: {
@@ -269,23 +270,25 @@ function useStyles() {
   },
   controlText: {
     ...typography.body,
-    fontWeight: "700",
+    fontFamily: fonts.bold,
     color: "#ffffff",
     fontSize: 17,
   },
   pauseButton: {
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: spacing.xs,
+    gap: spacing.sm,
     backgroundColor: c.surfaceAlt,
-    borderRadius: radius.lg,
+    borderRadius: radius.pill,
     paddingVertical: spacing.md,
     marginBottom: spacing.lg,
   },
   pauseLabel: {
-    ...typography.label,
-    textTransform: "uppercase",
-    color: c.textMuted,
+    ...typography.body,
+    fontFamily: fonts.bold,
+    fontSize: 17,
+    color: c.text,
   },
   resumeButton: {
     backgroundColor: c.primary,
