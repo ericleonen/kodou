@@ -9,7 +9,10 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.kodou.app",
       "infoPlist": {
-        "UIBackgroundModes": ["location", "audio"]
+        "UIBackgroundModes": [
+          "location",
+          "audio"
+        ]
       }
     },
     "android": {
@@ -38,10 +41,10 @@
       ],
       [
         "react-native-maps",
-        {
-          "androidGoogleMapsApiKey": "YOUR_ANDROID_GOOGLE_MAPS_API_KEY"
-        }
-      ]
+        {}
+      ],
+      "expo-font",
+      "expo-splash-screen"
     ],
     "web": {
       "favicon": "./assets/favicon.png"
