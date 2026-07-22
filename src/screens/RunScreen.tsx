@@ -42,6 +42,7 @@ export default function RunScreen() {
         autoPause: settings.autoPause,
         cueVolume: settings.cueVolume,
         duckAudio: settings.duckAudio,
+        speakUnit: settings.paceUnit,
       });
     if (settings.startCountdown) setPendingStart(() => go);
     else go();

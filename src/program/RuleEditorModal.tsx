@@ -21,6 +21,7 @@ import {
   PACE_UNITS,
   PROXIMITY_UNITS,
   RESPONSES,
+  SPEAK_PHRASES,
   UNIT_NAMES,
 } from "./catalog";
 import { useStore } from "./store";
@@ -33,11 +34,14 @@ import {
   ProximityUnit,
   ResponseKind,
   RuleResponse,
+  SpeakPhrase,
+  SpeakPhraseKind,
 } from "./types";
 
 type ResponseDraft =
   | { kind: "sound"; soundId: string | null }
-  | { kind: "vibrate"; times: string };
+  | { kind: "vibrate"; times: string }
+  | { kind: "speak"; phraseKind: SpeakPhraseKind; customText: string };
 
 const DEFAULT_UNIT: Record<MomentType, string> = {
   slowing_down: PACE_UNITS[0],
@@ -124,6 +128,9 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
   const [responses, setResponses] = useState<ResponseDraft[]>([]);
   // Which response index (if any) is currently adding a new sound.
   const [soundEditorFor, setSoundEditorFor] = useState<number | null>(null);
+  // Which response index (if any) is editing a custom talk phrase, + its draft.
+  const [customFor, setCustomFor] = useState<number | null>(null);
+  const [customDraft, setCustomDraft] = useState("");
 
   // Seed the form from the rule being edited (or defaults) on open.
   useEffect(() => {
@@ -136,7 +143,13 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
         initial.responses.map((r) =>
           r.kind === "sound"
             ? { kind: "sound", soundId: r.soundId }
-            : { kind: "vibrate", times: String(r.times) }
+            : r.kind === "vibrate"
+              ? { kind: "vibrate", times: String(r.times) }
+              : {
+                  kind: "speak",
+                  phraseKind: r.phrase.kind,
+                  customText: r.phrase.kind === "custom" ? r.phrase.text : "",
+                }
         )
       );
     } else {
@@ -156,10 +169,34 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
   function setKind(index: number, kind: ResponseKind) {
     animateNext();
     setResponses((prev) =>
-      prev.map((r, i) =>
-        i === index ? (kind === "sound" ? { kind, soundId: null } : { kind, times: "1" }) : r
-      )
+      prev.map((r, i) => {
+        if (i !== index) return r;
+        if (kind === "sound") return { kind, soundId: null };
+        if (kind === "vibrate") return { kind, times: "1" };
+        return { kind: "speak", phraseKind: "pace", customText: "" };
+      })
     );
+  }
+
+  // Picking a phrase for a talk cue; "custom" opens the text-entry modal.
+  function selectPhrase(index: number, phraseKind: SpeakPhraseKind) {
+    const current = responses[index];
+    const existingText = current?.kind === "speak" ? current.customText : "";
+    patchResponse(index, { kind: "speak", phraseKind, customText: existingText });
+    if (phraseKind === "custom") {
+      setCustomDraft(existingText);
+      setCustomFor(index);
+    }
+  }
+
+  function saveCustom() {
+    if (customFor === null) return;
+    patchResponse(customFor, {
+      kind: "speak",
+      phraseKind: "custom",
+      customText: customDraft.trim(),
+    });
+    setCustomFor(null);
   }
 
   function addResponse() {
@@ -184,7 +221,13 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
   const amountValid = amount.trim() !== "" && Number(amount) > 0;
   const responsesValid =
     responses.length > 0 &&
-    responses.every((r) => (r.kind === "sound" ? r.soundId !== null : vibrateValid(r.times)));
+    responses.every((r) =>
+      r.kind === "sound"
+        ? r.soundId !== null
+        : r.kind === "vibrate"
+          ? vibrateValid(r.times)
+          : r.phraseKind !== "custom" || r.customText.trim() !== ""
+    );
   const canSave = momentType !== null && amountValid && unit !== "" && responsesValid;
 
   // Show an error only once the user has typed something invalid.
@@ -201,11 +244,15 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
     } else {
       moment = { type: "split", interval: value, unit: unit as DistanceUnit };
     }
-    const built: RuleResponse[] = responses.map((r) =>
-      r.kind === "sound"
-        ? { kind: "sound", soundId: r.soundId as string }
-        : { kind: "vibrate", times: Math.round(Number(r.times)) }
-    );
+    const built: RuleResponse[] = responses.map((r) => {
+      if (r.kind === "sound") return { kind: "sound", soundId: r.soundId as string };
+      if (r.kind === "vibrate") return { kind: "vibrate", times: Math.round(Number(r.times)) };
+      const phrase: SpeakPhrase =
+        r.phraseKind === "custom"
+          ? { kind: "custom", text: r.customText.trim() }
+          : { kind: r.phraseKind };
+      return { kind: "speak", phrase };
+    });
     onSubmit({ moment, responses: built });
   }
 
@@ -216,6 +263,11 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
         ? DISTANCE_UNITS
         : PROXIMITY_UNITS;
   const soundOptions = sounds.map((s) => ({ label: s.name, value: s.id }));
+  const phraseOptions = (Object.keys(SPEAK_PHRASES) as SpeakPhraseKind[]).map((k) => ({
+    label: SPEAK_PHRASES[k].label,
+    value: k,
+    description: SPEAK_PHRASES[k].example,
+  }));
 
   return (
     <>
@@ -338,6 +390,40 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
                     onSelect={(soundId) => patchResponse(index, { kind: "sound", soundId })}
                     footerAction={{ label: "Add a sound", onPress: () => setSoundEditorFor(index) }}
                   />
+                ) : response.kind === "speak" ? (
+                  <View style={styles.speakBlock}>
+                    <Dropdown
+                      style={styles.soundDropdown}
+                      value={response.phraseKind}
+                      options={phraseOptions}
+                      onSelect={(kind) => selectPhrase(index, kind as SpeakPhraseKind)}
+                    />
+                    {response.phraseKind === "custom" ? (
+                      <TouchableOpacity
+                        style={styles.customField}
+                        onPress={() => {
+                          setCustomDraft(response.customText);
+                          setCustomFor(index);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <MaterialCommunityIcons
+                          name="pencil-outline"
+                          size={16}
+                          color={c.textMuted}
+                        />
+                        <Text
+                          style={[
+                            styles.customText,
+                            !response.customText && styles.customPlaceholder,
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {response.customText || "Tap to write your phrase"}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
                 ) : (
                   <View style={styles.vibrateRow}>
                     <Text style={styles.vibrateLead}>Vibrate</Text>
@@ -382,6 +468,35 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
           setSoundEditorFor(null);
         }}
       />
+
+      <BottomSheetModal
+        visible={customFor !== null}
+        onClose={() => setCustomFor(null)}
+        sheetStyle={styles.sheet}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => setCustomFor(null)} hitSlop={8}>
+            <Text style={styles.cancel}>Cancel</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Custom phrase</Text>
+          <TouchableOpacity onPress={saveCustom} disabled={customDraft.trim() === ""} hitSlop={8}>
+            <Text style={[styles.saveBtn, customDraft.trim() === "" && styles.disabled]}>Save</Text>
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.section}>What should Kodou say?</Text>
+        <TextInput
+          style={styles.customInput}
+          value={customDraft}
+          onChangeText={setCustomDraft}
+          placeholder="e.g. Keep pushing, you've got this!"
+          placeholderTextColor={c.textFaint}
+          multiline
+          autoFocus
+          returnKeyType="done"
+          blurOnSubmit
+          onSubmitEditing={saveCustom}
+        />
+      </BottomSheetModal>
     </>
   );
 }
@@ -546,6 +661,40 @@ function useStyles() {
   removeBtn: {
     marginLeft: "auto",
     padding: spacing.xs,
+  },
+  speakBlock: {
+    gap: spacing.sm,
+  },
+  customField: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    backgroundColor: c.background,
+    borderWidth: 1,
+    borderColor: c.border,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  customText: {
+    ...typography.body,
+    color: c.text,
+    flex: 1,
+  },
+  customPlaceholder: {
+    color: c.textFaint,
+  },
+  customInput: {
+    ...typography.body,
+    color: c.text,
+    backgroundColor: c.background,
+    borderWidth: 1,
+    borderColor: c.border,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    minHeight: 88,
+    textAlignVertical: "top",
   },
   vibrateRow: {
     flexDirection: "row",

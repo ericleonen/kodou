@@ -3,7 +3,8 @@ import { Vibration } from "react-native";
 import * as Location from "expo-location";
 import * as TaskManager from "expo-task-manager";
 import { createAudioPlayer, setAudioModeAsync } from "expo-audio";
-import { Rule, RuleResponse, Sound } from "../program/types";
+import * as Speech from "expo-speech";
+import { Rule, RuleResponse, Sound, SpeakPhrase } from "../program/types";
 import {
   goalDistanceMeters,
   goalDurationSeconds,
@@ -77,6 +78,7 @@ let segmentStart = 0; // timestamp the current running segment began
 // Run options + auto-pause state.
 let autoPauseEnabled = false;
 let cueVolume = 1;
+let speakUnit: "mi" | "km" = "km"; // unit spoken talk cues use for pace/distance
 let autoPaused = false; // paused by the engine (vs. the user)
 // Recent fixes (within the auto-pause window) used to judge net stillness.
 let moveWindow: { t: number; point: RunPoint }[] = [];
@@ -171,28 +173,55 @@ function pumpQueue() {
   });
 }
 
-/** Fires a cue's vibrations at once and plays its sounds one after another. */
+/** One playable, timed item in a cue: an audio clip or a spoken phrase. */
+type CueItem = { kind: "sound"; sound: Sound } | { kind: "speak"; text: string };
+
+/**
+ * Fires a cue's vibrations immediately, then plays its sounds and speaks its
+ * talk cues one after another (so a sound and a voice line never overlap).
+ */
 function playCue(responses: RuleResponse[], done: () => void) {
-  const cueSounds: Sound[] = [];
+  const items: CueItem[] = [];
   for (const r of responses) {
     if (r.kind === "vibrate") {
       vibrate(r.times);
-    } else {
+    } else if (r.kind === "sound") {
       const s = sounds.find((x) => x.id === r.soundId);
-      if (s) cueSounds.push(s);
+      if (s) items.push({ kind: "sound", sound: s });
+    } else if (r.kind === "speak") {
+      const text = phraseToSpeech(r.phrase);
+      if (text) items.push({ kind: "speak", text });
     }
   }
-  playSoundsSeq(cueSounds, 0, done);
+  playItemsSeq(items, 0, done);
 }
 
-function playSoundsSeq(list: Sound[], i: number, done: () => void) {
+function playItemsSeq(list: CueItem[], i: number, done: () => void) {
   if (i >= list.length) {
     // Give vibration-only cues a moment so they still get spaced out.
     setTimeout(done, list.length === 0 ? 250 : 0);
     return;
   }
-  const sound = list[i];
   const token = cueToken;
+  const next = () => {
+    if (token === cueToken) playItemsSeq(list, i + 1, done);
+  };
+  const item = list[i];
+  if (item.kind === "speak") {
+    try {
+      Speech.speak(item.text, {
+        volume: cueVolume,
+        onDone: next,
+        onStopped: next,
+        onError: next,
+      });
+    } catch (e) {
+      console.warn("Failed to speak run cue:", e);
+      next();
+    }
+    return;
+  }
+  const sound = item.sound;
   try {
     if (!player) player = createAudioPlayer(sound.uri);
     else player.replace(sound.uri);
@@ -207,12 +236,60 @@ function playSoundsSeq(list: Sound[], i: number, done: () => void) {
       } catch {
         // player may have been replaced already; ignore
       }
-      if (token === cueToken) playSoundsSeq(list, i + 1, done);
+      next();
     }, durationMs);
   } catch (e) {
     console.warn("Failed to play run sound:", e);
-    playSoundsSeq(list, i + 1, done);
+    next();
   }
+}
+
+/** Distance covered / remaining, in the spoken unit, plus a natural word. */
+function distanceSpeech(meters: number): { value: string; word: string } {
+  const per = speakUnit === "mi" ? 1609.344 : 1000;
+  const v = meters / per;
+  const rounded = Math.round(v * 10) / 10;
+  const singular = speakUnit === "mi" ? "mile" : "kilometer";
+  return {
+    value: rounded % 1 === 0 ? String(rounded) : rounded.toFixed(1),
+    word: rounded === 1 ? singular : `${singular}s`,
+  };
+}
+
+/** Renders a talk-cue phrase to a spoken sentence, or null if not meaningful yet. */
+function phraseToSpeech(phrase: SpeakPhrase): string | null {
+  if (phrase.kind === "custom") return phrase.text.trim() || null;
+
+  const cfg = state.config;
+  const { distance, elapsed } = state;
+
+  if (phrase.kind === "pace") {
+    if (distance <= 20 || elapsed <= 0) return null;
+    const per = speakUnit === "mi" ? 1609.344 : 1000;
+    const secPerUnit = elapsed / (distance / per);
+    const min = Math.floor(secPerUnit / 60);
+    const sec = Math.round(secPerUnit % 60);
+    const unitWord = speakUnit === "mi" ? "mile" : "kilometer";
+    const secPart = sec === 0 ? "" : ` ${sec}`;
+    return `Your pace is ${min}${secPart} per ${unitWord}`;
+  }
+
+  if (phrase.kind === "completed") {
+    const { value, word } = distanceSpeech(distance);
+    return `${value} ${word} completed`;
+  }
+
+  // remaining ("… left")
+  if (!cfg) return null;
+  if (cfg.goal.kind === "distance") {
+    const remaining = Math.max(0, goalDistanceMeters(cfg.goal) - distance);
+    const { value, word } = distanceSpeech(remaining);
+    return `${value} ${word} left`;
+  }
+  const remainingSec = Math.max(0, goalDurationSeconds(cfg.goal) - elapsed);
+  const mins = Math.round(remainingSec / 60);
+  if (mins <= 0) return "Less than a minute left";
+  return `${mins} ${mins === 1 ? "minute" : "minutes"} left`;
 }
 
 /** Clears the cue queue and stops any in-flight playback. */
@@ -222,6 +299,11 @@ function resetCues() {
   cuePlaying = false;
   try {
     player?.pause();
+  } catch {
+    // ignore
+  }
+  try {
+    Speech.stop();
   } catch {
     // ignore
   }
@@ -427,6 +509,8 @@ export interface RunOptions {
   autoPause?: boolean;
   cueVolume?: number;
   duckAudio?: boolean;
+  /** Unit spoken talk cues use for pace and distance. */
+  speakUnit?: "mi" | "km";
 }
 
 export async function startRun(
@@ -445,6 +529,7 @@ export async function startRun(
   segmentStart = Date.now();
   autoPauseEnabled = options.autoPause ?? false;
   cueVolume = options.cueVolume ?? 1;
+  speakUnit = options.speakUnit ?? "km";
   autoPaused = false;
   moveWindow = [];
   resetCues();

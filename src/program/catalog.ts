@@ -7,6 +7,8 @@ import {
   ProximityUnit,
   ResponseKind,
   RuleResponse,
+  SpeakPhrase,
+  SpeakPhraseKind,
 } from "./types";
 
 type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
@@ -21,8 +23,24 @@ export const MOMENTS: Record<MomentType, { label: string; icon: IconName }> = {
 
 /** The curated set of responses. */
 export const RESPONSES: Record<ResponseKind, { label: string; icon: IconName }> = {
-  sound: { label: "Play a sound", icon: "volume-high" },
+  sound: { label: "Sound", icon: "volume-high" },
   vibrate: { label: "Buzz", icon: "vibrate" },
+  speak: { label: "Talk", icon: "account-voice" },
+};
+
+/**
+ * The talk-cue phrase options, in picker order. Live phrases are filled in
+ * from run stats when spoken; "custom" reads a fixed sentence the user writes.
+ * `example` shows the user roughly what they'll hear.
+ */
+export const SPEAK_PHRASES: Record<
+  SpeakPhraseKind,
+  { label: string; example: string }
+> = {
+  pace: { label: "Pace: …", example: "“Your pace is 7 40 per mile”" },
+  remaining: { label: "… left", example: "“1.2 miles left”" },
+  completed: { label: "… completed", example: "“2 miles completed”" },
+  custom: { label: "Custom…", example: "Say your own words" },
 };
 
 export const PACE_UNITS: PaceUnit[] = ["min/mi", "min/km"];
@@ -65,5 +83,21 @@ export function describeResponse(response: RuleResponse, soundName?: string): st
       return `${soundName ?? "(deleted)"}`;
     case "vibrate":
       return `Vibrate ${response.times} ${response.times === 1 ? "time" : "times"}`;
+    case "speak":
+      return describeSpeak(response.phrase);
+  }
+}
+
+/** A short label for a talk cue's phrase, e.g. for the rule list. */
+function describeSpeak(phrase: SpeakPhrase): string {
+  switch (phrase.kind) {
+    case "pace":
+      return "Say my pace";
+    case "remaining":
+      return "Say distance left";
+    case "completed":
+      return "Say distance completed";
+    case "custom":
+      return `Say “${phrase.text}”`;
   }
 }

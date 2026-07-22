@@ -20,10 +20,23 @@ export type CriticalMoment =
 
 export type MomentType = CriticalMoment["type"];
 
-/** The two supported responses. */
+/**
+ * A spoken cue. Live phrases ("pace", "remaining", "completed") are filled in
+ * from the run's current stats when spoken; "custom" reads a fixed sentence.
+ */
+export type SpeakPhrase =
+  | { kind: "pace" }
+  | { kind: "remaining" }
+  | { kind: "completed" }
+  | { kind: "custom"; text: string };
+
+export type SpeakPhraseKind = SpeakPhrase["kind"];
+
+/** The supported responses. */
 export type RuleResponse =
   | { kind: "sound"; soundId: string }
-  | { kind: "vibrate"; times: number };
+  | { kind: "vibrate"; times: number }
+  | { kind: "speak"; phrase: SpeakPhrase };
 
 export type ResponseKind = RuleResponse["kind"];
 

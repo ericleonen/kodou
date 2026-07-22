@@ -1,7 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Vibration } from "react-native";
 import { useAudioPlayer } from "expo-audio";
-import { Rule, Sound } from "./types";
+import * as Speech from "expo-speech";
+import { Rule, Sound, SpeakPhrase } from "./types";
+
+/** A representative sentence for a talk cue, used when previewing a preset. */
+function demoSpeech(phrase: SpeakPhrase): string {
+  switch (phrase.kind) {
+    case "pace":
+      return "Your pace is 7 40 per mile";
+    case "remaining":
+      return "1.2 miles left";
+    case "completed":
+      return "2 miles completed";
+    case "custom":
+      return phrase.text;
+  }
+}
 
 const BUZZ_ON = 250; // ms per vibration pulse
 const BUZZ_OFF = 150; // ms gap between pulses
@@ -45,6 +60,7 @@ export function useTestRunner(rules: Rule[], sounds: Sound[]) {
       resolve();
     }
     Vibration.cancel();
+    Speech.stop();
     player.pause();
     setActiveRuleId(null);
     setRunning(false);
@@ -63,6 +79,16 @@ export function useTestRunner(rules: Rule[], sounds: Sound[]) {
           }
           Vibration.vibrate(pattern);
           await wait(times * BUZZ_ON + (times - 1) * BUZZ_OFF);
+        } else if (response.kind === "speak") {
+          const text = demoSpeech(response.phrase).trim();
+          if (!text) continue;
+          await new Promise<void>((resolve) => {
+            Speech.speak(text, {
+              onDone: () => resolve(),
+              onStopped: () => resolve(),
+              onError: () => resolve(),
+            });
+          });
         } else {
           const sound = sounds.find((s) => s.id === response.soundId);
           if (!sound) continue;
