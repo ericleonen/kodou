@@ -9,11 +9,26 @@ import {
 } from "react";
 import { reorderItems } from "react-native-reorderable-list";
 import { SEED_PRESETS } from "./mockPresets";
-import { deleteSoundFile, loadData, persistSoundFile, saveData } from "./storage";
+import { SEED_SOUNDS } from "./seedSounds";
+import { deleteSoundFile, installSeedSound, loadData, persistSoundFile, saveData } from "./storage";
 import { Preset, Rule, Sound } from "./types";
 
 let idCounter = 0;
 const genId = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${idCounter++}`;
+
+/** Installs the bundled seed sounds into the sounds dir (best-effort). */
+async function buildSeedSounds(): Promise<Sound[]> {
+  const out: Sound[] = [];
+  for (const s of SEED_SOUNDS) {
+    try {
+      const uri = await installSeedSound(s.module, s.id);
+      out.push({ id: s.id, name: s.name, uri, duration: s.duration, start: s.start, end: s.end });
+    } catch (error) {
+      console.warn("Failed to install seed sound:", s.id, error);
+    }
+  }
+  return out;
+}
 
 type RuleDraft = Omit<Rule, "id">;
 
@@ -59,23 +74,32 @@ export function ProgramStoreProvider({ children }: { children: ReactNode }) {
   const [presets, setPresets] = useState<Preset[]>([]);
   const [sounds, setSounds] = useState<Sound[]>([]);
 
-  // Load persisted data once on mount (falling back to seed presets).
+  // Load persisted data once on mount. On a first launch (nothing saved yet)
+  // seed the library with the default presets and their bundled sounds.
   useEffect(() => {
     let active = true;
-    loadData().then((data) => {
+    (async () => {
+      const data = await loadData();
       if (!active) return;
-      setPresets(data?.presets ?? SEED_PRESETS);
-      // Backfill trim fields for any sounds saved before they existed.
-      setSounds(
-        (data?.sounds ?? []).map((s) => ({
-          ...s,
-          duration: s.duration ?? 0,
-          start: s.start ?? 0,
-          end: s.end ?? s.duration ?? 0,
-        }))
-      );
+      if (data) {
+        setPresets(data.presets);
+        // Backfill trim fields for any sounds saved before they existed.
+        setSounds(
+          (data.sounds ?? []).map((s) => ({
+            ...s,
+            duration: s.duration ?? 0,
+            start: s.start ?? 0,
+            end: s.end ?? s.duration ?? 0,
+          }))
+        );
+      } else {
+        const seeded = await buildSeedSounds();
+        if (!active) return;
+        setSounds(seeded);
+        setPresets(SEED_PRESETS);
+      }
       setReady(true);
-    });
+    })();
     return () => {
       active = false;
     };
@@ -165,12 +189,15 @@ export function ProgramStoreProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  // "Clear all" wipes user data but restores the default library so the app
+  // is never left empty: seed presets + their bundled sounds come back.
   const clearAll = useCallback(() => {
     setSounds((prev) => {
       prev.forEach((s) => deleteSoundFile(s.uri));
       return [];
     });
-    setPresets([]);
+    setPresets(SEED_PRESETS);
+    buildSeedSounds().then((seeded) => setSounds(seeded));
   }, []);
 
   const soundsRef = useRef(sounds);

@@ -1,4 +1,5 @@
 import { Directory, File, Paths } from "expo-file-system";
+import { Asset } from "expo-asset";
 import { Preset, Sound } from "./types";
 
 /**
@@ -54,6 +55,22 @@ export async function persistSoundFile(
   const ext = source.extension || extensionOf(originalName) || ".m4a";
   const dest = new File(SOUNDS_DIR, `${id}${ext}`);
   await source.copy(dest);
+  return dest.uri;
+}
+
+/**
+ * Copies a bundled seed sound (a require()'d asset) into the persistent
+ * sounds dir as `${id}.mp3` and returns its file:// URI, so it behaves
+ * exactly like a user-uploaded sound.
+ */
+export async function installSeedSound(module: number, id: string): Promise<string> {
+  ensureDirs();
+  const asset = Asset.fromModule(module);
+  await asset.downloadAsync();
+  const localUri = asset.localUri ?? asset.uri;
+  const dest = new File(SOUNDS_DIR, `${id}.mp3`);
+  if (dest.exists) dest.delete();
+  await new File(localUri).copy(dest);
   return dest.uri;
 }
 
