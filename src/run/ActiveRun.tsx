@@ -171,20 +171,34 @@ export default function ActiveRun() {
     );
   }
 
-  // ---- Default stats-first layout: big numbers, no map.
+  // ---- Default stats-first layout: big centered numbers, no map.
   return (
     <View style={styles.statsContainer}>
       {topRow}
-      <View style={styles.statsMetrics}>
-        <Metric label={`Distance (${distanceUnit})`} value={distanceValue} valueStyle={styles.valueHuge} />
-        <View style={styles.statsRow}>
-          <Metric label="Time" value={timeValue} valueStyle={styles.valueLarge} />
-          <Metric label={`Pace (/${paceUnit})`} value={paceValue} valueStyle={styles.valueLarge} />
+      <View style={styles.statsBody}>
+        <View style={styles.statBlock}>
+          <Text style={styles.statLabel}>Distance ({distanceUnit})</Text>
+          <Text style={styles.statHuge} numberOfLines={1} adjustsFontSizeToFit>
+            {distanceValue}
+          </Text>
+        </View>
+        <View style={styles.statSecondaryRow}>
+          <View style={styles.statBlockHalf}>
+            <Text style={styles.statLabel}>Time</Text>
+            <Text style={styles.statLarge} numberOfLines={1} adjustsFontSizeToFit>
+              {timeValue}
+            </Text>
+          </View>
+          <View style={styles.statBlockHalf}>
+            <Text style={styles.statLabel}>Pace (/{paceUnit})</Text>
+            <Text style={styles.statLarge} numberOfLines={1} adjustsFontSizeToFit>
+              {paceValue}
+            </Text>
+          </View>
         </View>
       </View>
       <View style={styles.goalCard}>{goalBlock}</View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <View style={styles.spacer} />
       {controls}
     </View>
   );
@@ -307,14 +321,6 @@ function useStyles() {
     flexDirection: "row",
     gap: spacing.sm,
   },
-  statsMetrics: {
-    marginTop: spacing.xxl,
-    gap: spacing.xl,
-  },
-  statsRow: {
-    flexDirection: "row",
-    gap: spacing.md,
-  },
   metricCell: {
     flex: 1,
   },
@@ -329,12 +335,43 @@ function useStyles() {
     color: c.text,
     fontVariant: ["tabular-nums"],
   },
-  valueHuge: {
-    fontSize: 84,
-    lineHeight: 84,
+  // Centered big-number stats (default no-map view).
+  statsBody: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xl,
   },
-  valueLarge: {
-    fontSize: 44,
+  statBlock: {
+    alignItems: "center",
+  },
+  statSecondaryRow: {
+    flexDirection: "row",
+    alignSelf: "stretch",
+  },
+  statBlockHalf: {
+    flex: 1,
+    alignItems: "center",
+  },
+  statLabel: {
+    ...typography.label,
+    textTransform: "uppercase",
+    color: c.textMuted,
+    marginBottom: spacing.xs,
+  },
+  statHuge: {
+    ...typography.display,
+    fontSize: 132,
+    color: c.text,
+    fontVariant: ["tabular-nums"],
+    textAlign: "center",
+  },
+  statLarge: {
+    ...typography.display,
+    fontSize: 60,
+    color: c.text,
+    fontVariant: ["tabular-nums"],
+    textAlign: "center",
   },
   goalTop: {
     flexDirection: "row",
@@ -353,6 +390,7 @@ function useStyles() {
   },
   goalCard: {
     marginTop: spacing.xxl,
+    marginBottom: spacing.lg,
     backgroundColor: c.surface,
     borderRadius: radius.md,
     padding: spacing.md,

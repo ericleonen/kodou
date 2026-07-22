@@ -14,6 +14,7 @@ type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 /** The curated set of critical moments and their icon / picker label. */
 export const MOMENTS: Record<MomentType, { label: string; icon: IconName }> = {
   slowing_down: { label: "I slow down", icon: "trending-down" },
+  speeding_up: { label: "I speed up", icon: "trending-up" },
   almost_done: { label: "I'm almost done", icon: "flag-checkered" },
   split: { label: "I reach a split", icon: "map-marker-distance" },
 };
@@ -44,6 +45,8 @@ export function describeMoment(moment: CriticalMoment): string {
   switch (moment.type) {
     case "slowing_down":
       return `Pace slower than ${moment.threshold} ${moment.unit}`;
+    case "speeding_up":
+      return `Pace faster than ${moment.threshold} ${moment.unit}`;
     case "almost_done":
       return `Within ${moment.amount} ${moment.unit} of my goal`;
     case "split":

@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Keyboard,
+  LayoutAnimation,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  UIManager,
   View,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -38,22 +41,46 @@ type ResponseDraft =
 
 const DEFAULT_UNIT: Record<MomentType, string> = {
   slowing_down: PACE_UNITS[0],
+  speeding_up: PACE_UNITS[0],
   almost_done: PROXIMITY_UNITS[1], // "km"
   split: "km",
 };
 
 const PARAM_LEAD: Record<MomentType, string> = {
   slowing_down: "Pace slower than",
+  speeding_up: "Pace faster than",
   almost_done: "Within",
   split: "Every",
 };
 
 const MAX_VIBRATIONS = 10;
 
+// Older Android needs layout animations turned on explicitly.
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+/** Animate the next render's layout change (adds/removes/resizes slide). */
+function animateNext() {
+  LayoutAnimation.configureNext({
+    duration: 220,
+    create: {
+      type: LayoutAnimation.Types.easeInEaseOut,
+      property: LayoutAnimation.Properties.opacity,
+    },
+    update: { type: LayoutAnimation.Types.easeInEaseOut },
+    delete: {
+      type: LayoutAnimation.Types.easeInEaseOut,
+      property: LayoutAnimation.Properties.opacity,
+    },
+  });
+}
+
 /** The numeric parameter of a moment, regardless of its type. */
 function momentValue(moment: CriticalMoment): number {
   switch (moment.type) {
     case "slowing_down":
+    case "speeding_up":
       return moment.threshold;
     case "almost_done":
       return moment.amount;
@@ -121,16 +148,28 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
   }, [visible, initial]);
 
   function selectMoment(type: MomentType) {
+    animateNext();
     setMomentType(type);
     setUnit(DEFAULT_UNIT[type]);
   }
 
   function setKind(index: number, kind: ResponseKind) {
+    animateNext();
     setResponses((prev) =>
       prev.map((r, i) =>
         i === index ? (kind === "sound" ? { kind, soundId: null } : { kind, times: "1" }) : r
       )
     );
+  }
+
+  function addResponse() {
+    animateNext();
+    setResponses((prev) => [...prev, { kind: "sound", soundId: null }]);
+  }
+
+  function removeResponse(index: number) {
+    animateNext();
+    setResponses((prev) => prev.filter((_, i) => i !== index));
   }
 
   function patchResponse(index: number, next: ResponseDraft) {
@@ -155,8 +194,8 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
     if (!canSave || momentType === null) return;
     const value = Number(amount);
     let moment: CriticalMoment;
-    if (momentType === "slowing_down") {
-      moment = { type: "slowing_down", threshold: value, unit: unit as PaceUnit };
+    if (momentType === "slowing_down" || momentType === "speeding_up") {
+      moment = { type: momentType, threshold: value, unit: unit as PaceUnit };
     } else if (momentType === "almost_done") {
       moment = { type: "almost_done", amount: value, unit: unit as ProximityUnit };
     } else {
@@ -171,7 +210,7 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
   }
 
   const units =
-    momentType === "slowing_down"
+    momentType === "slowing_down" || momentType === "speeding_up"
       ? PACE_UNITS
       : momentType === "split"
         ? DISTANCE_UNITS
@@ -251,10 +290,7 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
 
             <View style={styles.thenHeader}>
               <Text style={styles.section}>Then…</Text>
-              <TouchableOpacity
-                onPress={() => setResponses((prev) => [...prev, { kind: "sound", soundId: null }])}
-                hitSlop={8}
-              >
+              <TouchableOpacity onPress={addResponse} hitSlop={8}>
                 <Text style={styles.addResponse}>+ Add response</Text>
               </TouchableOpacity>
             </View>
@@ -285,7 +321,7 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
                   {responses.length > 1 ? (
                     <TouchableOpacity
                       style={styles.removeBtn}
-                      onPress={() => setResponses((prev) => prev.filter((_, i) => i !== index))}
+                      onPress={() => removeResponse(index)}
                       hitSlop={8}
                     >
                       <MaterialCommunityIcons name="close" size={16} color={c.textMuted} />
@@ -295,6 +331,7 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
 
                 {response.kind === "sound" ? (
                   <Dropdown
+                    style={styles.soundDropdown}
                     value={response.soundId}
                     options={soundOptions}
                     placeholder="Choose a soundbite"
@@ -433,6 +470,11 @@ function useStyles() {
   paramTrail: {
     ...typography.body,
     color: c.text,
+  },
+  soundDropdown: {
+    backgroundColor: c.background,
+    borderWidth: 1,
+    borderColor: c.border,
   },
   numberInput: {
     ...typography.body,

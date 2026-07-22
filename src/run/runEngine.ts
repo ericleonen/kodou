@@ -3,7 +3,7 @@ import { Vibration } from "react-native";
 import * as Location from "expo-location";
 import * as TaskManager from "expo-task-manager";
 import { createAudioPlayer, setAudioModeAsync } from "expo-audio";
-import { Rule, Sound } from "../program/types";
+import { Rule, RuleResponse, Sound } from "../program/types";
 import {
   goalDistanceMeters,
   goalDurationSeconds,
@@ -28,6 +28,17 @@ const STOP_RADIUS = 5; // meters; must stay within this to count as stopped
 const AUTO_PAUSE_MS = 5000; // stopped this long → auto-pause
 const BUZZ_ON = 250;
 const BUZZ_OFF = 150;
+
+// ---- Trigger robustness ----
+const TRIGGER_ALPHA = 0.18; // heavier smoothing than display for pace decisions
+const PACE_HYST_FRAC = 0.08; // dead-band around the threshold: 8% of it…
+const PACE_HYST_MIN = 0.1; // …but at least 0.1 min per unit
+const CONFIRM_SEC = 3; // pace condition must hold this long before firing
+const PACE_COOLDOWN_SEC = 30; // min gap between fires of the same pace rule
+const WARMUP_SEC = 18; // ignore the start-from-rest ramp for this long
+const WARMUP_DIST = 15; // …and until this much ground is covered (meters)
+const CUE_GAP_MS = 900; // spacing between queued cues
+const CUE_QUEUE_CAP = 4; // drop extra cues if the queue backs up
 
 export type RunPhase = "idle" | "active" | "summary";
 
@@ -59,6 +70,7 @@ let sounds: Sound[] = [];
 // Tracking internals.
 let lastCoord: RunPoint | null = null;
 let smoothed = 0;
+let triggerSpeed = 0; // heavier-smoothed speed used only for pace triggers
 let accumulatedMs = 0; // elapsed time from prior (unpaused) segments
 let segmentStart = 0; // timestamp the current running segment began
 
@@ -73,8 +85,20 @@ const samples: RunSample[] = [];
 const events: RunEvent[] = [];
 
 // Per-rule trigger memory.
-type TriggerMemory = { fired?: boolean; armed?: boolean; lastSplit?: number };
+type TriggerMemory = {
+  fired?: boolean; // one-shots (almost_done)
+  armed?: boolean; // pace rules: has a baseline been established to depart from
+  lastSplit?: number;
+  lastFireAt?: number; // elapsed sec of the last fire → cooldown
+  candidateSince?: number; // elapsed sec the fire condition began → confirmation
+};
 let triggers: Record<string, TriggerMemory> = {};
+
+// Cue playback queue: coincident moments are serialized so their sounds never
+// clobber the shared player. Each entry is one rule's responses.
+let cueQueue: RuleResponse[][] = [];
+let cuePlaying = false;
+let cueToken = 0; // bumped on run start/finish/reset to abort in-flight cues
 
 // Subscriptions.
 const listeners = new Set<() => void>();
@@ -105,7 +129,18 @@ function computeElapsed(now: number): number {
 
 let player: ReturnType<typeof createAudioPlayer> | null = null;
 
-function fire(rule: Rule) {
+function vibrate(times: number) {
+  const n = Math.max(1, times);
+  const pattern = [0];
+  for (let i = 0; i < n; i++) {
+    pattern.push(BUZZ_ON);
+    if (i < n - 1) pattern.push(BUZZ_OFF);
+  }
+  Vibration.vibrate(pattern);
+}
+
+/** Records the moment's event and enqueues its responses for playback. */
+function queueRule(rule: Rule) {
   if (lastCoord) {
     events.push({
       type: rule.moment.type,
@@ -114,37 +149,81 @@ function fire(rule: Rule) {
       longitude: lastCoord.longitude,
     });
   }
-  for (const response of rule.responses) {
-    if (response.kind === "vibrate") {
-      const times = Math.max(1, response.times);
-      const pattern = [0];
-      for (let i = 0; i < times; i++) {
-        pattern.push(BUZZ_ON);
-        if (i < times - 1) pattern.push(BUZZ_OFF);
-      }
-      Vibration.vibrate(pattern);
+  // The moment still counts even if we drop the cue when backed up.
+  if (cueQueue.length >= CUE_QUEUE_CAP) return;
+  cueQueue.push(rule.responses);
+  pumpQueue();
+}
+
+/** Plays the next queued cue if nothing is currently playing. */
+function pumpQueue() {
+  if (cuePlaying) return;
+  const responses = cueQueue.shift();
+  if (!responses) return;
+  cuePlaying = true;
+  const token = cueToken;
+  playCue(responses, () => {
+    if (token !== cueToken) return; // run ended or restarted mid-cue
+    cuePlaying = false;
+    setTimeout(() => {
+      if (token === cueToken) pumpQueue();
+    }, CUE_GAP_MS);
+  });
+}
+
+/** Fires a cue's vibrations at once and plays its sounds one after another. */
+function playCue(responses: RuleResponse[], done: () => void) {
+  const cueSounds: Sound[] = [];
+  for (const r of responses) {
+    if (r.kind === "vibrate") {
+      vibrate(r.times);
     } else {
-      const sound = sounds.find((s) => s.id === response.soundId);
-      if (!sound) continue;
-      try {
-        if (!player) player = createAudioPlayer(sound.uri);
-        else player.replace(sound.uri);
-        player.volume = cueVolume;
-        player.seekTo(sound.start);
-        player.play();
-        const activePlayer = player;
-        const durationMs = Math.max(0, sound.end - sound.start) * 1000;
-        setTimeout(() => {
-          try {
-            activePlayer.pause();
-          } catch {
-            // player may have been replaced already; ignore
-          }
-        }, durationMs);
-      } catch (e) {
-        console.warn("Failed to play run sound:", e);
-      }
+      const s = sounds.find((x) => x.id === r.soundId);
+      if (s) cueSounds.push(s);
     }
+  }
+  playSoundsSeq(cueSounds, 0, done);
+}
+
+function playSoundsSeq(list: Sound[], i: number, done: () => void) {
+  if (i >= list.length) {
+    // Give vibration-only cues a moment so they still get spaced out.
+    setTimeout(done, list.length === 0 ? 250 : 0);
+    return;
+  }
+  const sound = list[i];
+  const token = cueToken;
+  try {
+    if (!player) player = createAudioPlayer(sound.uri);
+    else player.replace(sound.uri);
+    player.volume = cueVolume;
+    player.seekTo(sound.start);
+    player.play();
+    const activePlayer = player;
+    const durationMs = Math.max(0, sound.end - sound.start) * 1000;
+    setTimeout(() => {
+      try {
+        activePlayer.pause();
+      } catch {
+        // player may have been replaced already; ignore
+      }
+      if (token === cueToken) playSoundsSeq(list, i + 1, done);
+    }, durationMs);
+  } catch (e) {
+    console.warn("Failed to play run sound:", e);
+    playSoundsSeq(list, i + 1, done);
+  }
+}
+
+/** Clears the cue queue and stops any in-flight playback. */
+function resetCues() {
+  cueToken++;
+  cueQueue = [];
+  cuePlaying = false;
+  try {
+    player?.pause();
+  } catch {
+    // ignore
   }
 }
 
@@ -153,7 +232,7 @@ function fire(rule: Rule) {
 function evaluateTriggers() {
   const cfg = state.config;
   if (!cfg) return;
-  const { distance, elapsed, speed } = state;
+  const { distance, elapsed } = state;
   const avgSpeed = elapsed > 0 ? distance / elapsed : 0;
 
   // Remaining distance/time to the goal, estimating the missing dimension
@@ -170,23 +249,47 @@ function evaluateTriggers() {
     remainingDistance = avgSpeed > 0 ? remainingTime * avgSpeed : Infinity;
   }
 
+  // Warm-up: ignore the initial ramp from rest before judging pace.
+  const warmedUp = elapsed >= WARMUP_SEC && distance >= WARMUP_DIST;
+
   for (const rule of rules) {
-    const mem = triggers[rule.id] ?? (triggers[rule.id] = { armed: true });
+    const mem = triggers[rule.id] ?? (triggers[rule.id] = {});
     const moment = rule.moment;
 
-    if (moment.type === "slowing_down") {
-      if (speed <= MOVING_SPEED) {
-        mem.armed = true; // stopped/unknown; re-arm and don't fire
+    if (moment.type === "slowing_down" || moment.type === "speeding_up") {
+      // Not warmed up, or effectively stopped → don't judge pace. Cancel any
+      // pending confirmation so a stop doesn't count toward firing.
+      if (!warmedUp || triggerSpeed <= MOVING_SPEED) {
+        mem.candidateSince = undefined;
         continue;
       }
       const paceMeters = moment.unit === "min/mi" ? 1609.344 : 1000;
-      const currentPaceMin = paceMeters / speed / 60;
-      const slow = currentPaceMin > moment.threshold;
-      if (slow && mem.armed) {
-        fire(rule);
-        mem.armed = false;
-      } else if (!slow) {
-        mem.armed = true; // recovered; can fire again next time
+      const pace = paceMeters / triggerSpeed / 60; // minutes per unit
+      const hyst = Math.max(PACE_HYST_MIN, moment.threshold * PACE_HYST_FRAC);
+      const slowing = moment.type === "slowing_down";
+      // Dead-band around the threshold. You must reach "good" pace to arm the
+      // rule (a baseline to depart from) before a "bad" pace can fire it — so a
+      // slow start can't trigger "slowing down" until you've actually sped up.
+      const goodPace = slowing ? pace <= moment.threshold - hyst : pace >= moment.threshold + hyst;
+      const badPace = slowing ? pace >= moment.threshold + hyst : pace <= moment.threshold - hyst;
+
+      if (goodPace) {
+        mem.armed = true;
+        mem.candidateSince = undefined;
+      } else if (badPace && mem.armed) {
+        // Require the condition to hold (confirmation) and respect the cooldown.
+        if (mem.candidateSince === undefined) mem.candidateSince = elapsed;
+        const held = elapsed - mem.candidateSince >= CONFIRM_SEC;
+        const cooled = mem.lastFireAt === undefined || elapsed - mem.lastFireAt >= PACE_COOLDOWN_SEC;
+        if (held && cooled) {
+          queueRule(rule);
+          mem.armed = false;
+          mem.lastFireAt = elapsed;
+          mem.candidateSince = undefined;
+        }
+      } else {
+        // Inside the dead-band → hold arming, drop any pending confirmation.
+        mem.candidateSince = undefined;
       }
     } else if (moment.type === "almost_done") {
       const isTime = moment.unit === "min" || moment.unit === "sec";
@@ -200,7 +303,7 @@ function evaluateTriggers() {
         cond = remainingDistance >= 0 && remainingDistance <= threshold;
       }
       if (cond && !mem.fired) {
-        fire(rule);
+        queueRule(rule);
         mem.fired = true;
       }
     } else if (moment.type === "split") {
@@ -210,7 +313,7 @@ function evaluateTriggers() {
         const crossed = Math.floor(distance / intervalM);
         if (crossed > (mem.lastSplit ?? 0)) {
           mem.lastSplit = crossed;
-          fire(rule);
+          queueRule(rule);
         }
       }
     }
@@ -233,6 +336,8 @@ function onLocations(locations: Location.LocationObject[]) {
 
     const rawSpeed = raw != null && raw > 0 ? raw : 0;
     smoothed = smoothed === 0 ? rawSpeed : SPEED_ALPHA * rawSpeed + (1 - SPEED_ALPHA) * smoothed;
+    triggerSpeed =
+      triggerSpeed === 0 ? rawSpeed : TRIGGER_ALPHA * rawSpeed + (1 - TRIGGER_ALPHA) * triggerSpeed;
     const next = { latitude, longitude };
 
     // Net-stillness tracking over the window (independent of GPS speed).
@@ -335,12 +440,14 @@ export async function startRun(
   triggers = {};
   lastCoord = null;
   smoothed = 0;
+  triggerSpeed = 0;
   accumulatedMs = 0;
   segmentStart = Date.now();
   autoPauseEnabled = options.autoPause ?? false;
   cueVolume = options.cueVolume ?? 1;
   autoPaused = false;
   moveWindow = [];
+  resetCues();
   path.length = 0;
   samples.length = 0;
   events.length = 0;
@@ -434,6 +541,7 @@ export function finishRun() {
   };
   state = { ...state, phase: "summary", paused: false, recording };
   emit();
+  resetCues();
   void stopLocation();
 }
 
@@ -454,6 +562,8 @@ export function resetRun() {
   autoPaused = false;
   autoPauseEnabled = false;
   moveWindow = [];
+  triggerSpeed = 0;
+  resetCues();
   path.length = 0;
   samples.length = 0;
   events.length = 0;
