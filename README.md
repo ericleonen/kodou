@@ -1,44 +1,37 @@
-# Kodou
+<p align="center">
+  <img src="./assets/images/icon.png" alt="Kodou logo" width="128" />
+</p>
 
-**Kodou** is a free running app that helps you get out the door, track your runs, and push past your limits — built with [React Native](https://reactnative.dev/).
+<h1 align="center">Kodou Running</h1>
 
-Beyond the essentials you'd expect from any running app, Kodou lets you *program* your run: schedule inspirational soundbites to play at the moments that matter most, so you have a coach in your ear exactly when you need one.
+<p align="center"><em>Run with your heart.</em></p>
+
+---
+
+## Why Kodou?
+
+Imagine this: You're running. You're about to hit your PR, BUT you're running on fumes. You slow down a bit. Victory is leaving your grasp. But then Erwin Smith yells into your ear, "My soldiers rage!" You pick yourself up and cross that finish line in record time.
+
+**Kodou** is a running app that makes those moments happen. With Kodou, you can *program* your run by scheduling soundbites or haptic buzzes to trigger at key moments. Inspiration hits you when you need it most.
 
 ## Features
 
-- **Track your runs** — measure pace and distance in real time.
-- **Start, save, and review** — begin a run with a tap and keep a history of everything you've logged.
-- **Set a distance goal** — pick a target and watch your progress toward it.
-- **Programmable inspiration** — configure soundbites to play at critical moments of your run to inspire you to keep going:
-  - when you slow down,
-  - when you're almost done,
-  - when you stop.
-
-## Tech Stack
-
-- [React Native](https://reactnative.dev/)
-
-## Getting Started
-
-> _Setup instructions will be added as the project takes shape._
-
-```sh
-# Install dependencies
-npm install
-
-# Run on iOS
-npm run ios
-
-# Run on Android
-npm run android
-```
+- **Track your runs** — live pace, distance, and time on a full-screen map or a stats-first view.
+- **Goals** — pick a target (distance or time) and watch a progress bar fill as you go.
+- **Save & review** — log every run with a title and notes, then revisit it on a detail screen with your route and pace chart.
+- **Programmable moments** — build presets that fire a sound or a buzz on any of:
+  - **speeding up** — when your pace drops below a threshold,
+  - **slowing down** — when your pace creeps above one,
+  - **splits** — every kilometer or mile,
+  - **almost done** — a set distance or time from your goal.
+- **Your sound library** — upload and trim your own clips, or use the bundled starter sounds.
 
 ## Roadmap
 
-- [ ] Core run tracking (pace, distance, save/start)
-- [ ] Distance goals
-- [ ] Programmable soundbite triggers (slow down, almost done, stopped)
+Where Kodou is headed:
 
-## License
-
-TBD
+- **Publish & test the iOS app** — ship a TestFlight build and get it into runners' hands.
+- **Heart-rate-based triggers** — fire moments off your heart rate, not just your pace (e.g. "you're in zone 5 — ease up").
+- **Smoother animations** — polish every transition until the app feels effortless.
+- **Talk feature** — spoken cues that read out your live stats: *"Your pace is 7:42 per mile."*
+- **Music integration** — connect Spotify / Apple Music / etc. to trigger song playback at key moments. Ideally, I want an **AI DJ/mixer** that lines up the *hype* drops in your music with the *hype* moments in your run.
