@@ -48,6 +48,8 @@ const DEFAULT_UNIT: Record<MomentType, string> = {
   speeding_up: PACE_UNITS[0],
   almost_done: PROXIMITY_UNITS[1], // "km"
   split: "km",
+  hr_above: "bpm",
+  hr_below: "bpm",
 };
 
 const PARAM_LEAD: Record<MomentType, string> = {
@@ -55,9 +57,17 @@ const PARAM_LEAD: Record<MomentType, string> = {
   speeding_up: "Pace faster than",
   almost_done: "Within",
   split: "Every",
+  hr_above: "Heart rate above",
+  hr_below: "Heart rate below",
 };
 
 const MAX_VIBRATIONS = 10;
+const MAX_BPM = 240;
+
+/** Heart-rate moments carry a plain BPM threshold, not a unit. */
+function isHrMoment(type: MomentType | null): boolean {
+  return type === "hr_above" || type === "hr_below";
+}
 
 // Older Android needs layout animations turned on explicitly.
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -90,6 +100,9 @@ function momentValue(moment: CriticalMoment): number {
       return moment.amount;
     case "split":
       return moment.interval;
+    case "hr_above":
+    case "hr_below":
+      return moment.bpm;
   }
 }
 
@@ -138,7 +151,7 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
     if (initial) {
       setMomentType(initial.moment.type);
       setAmount(String(momentValue(initial.moment)));
-      setUnit(initial.moment.unit);
+      setUnit("unit" in initial.moment ? initial.moment.unit : "bpm");
       setResponses(
         initial.responses.map((r) =>
           r.kind === "sound"
@@ -241,6 +254,8 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
       moment = { type: momentType, threshold: value, unit: unit as PaceUnit };
     } else if (momentType === "almost_done") {
       moment = { type: "almost_done", amount: value, unit: unit as ProximityUnit };
+    } else if (momentType === "hr_above" || momentType === "hr_below") {
+      moment = { type: momentType, bpm: Math.round(value) };
     } else {
       moment = { type: "split", interval: value, unit: unit as DistanceUnit };
     }
@@ -319,17 +334,25 @@ export default function RuleEditorModal({ visible, initial, onSubmit, onDelete, 
                   <TextInput
                     style={[styles.numberInput, amountError && styles.inputError]}
                     value={amount}
-                    onChangeText={(text) => setAmount(sanitizeDecimal(text))}
-                    keyboardType="decimal-pad"
+                    onChangeText={(text) =>
+                      setAmount(
+                        isHrMoment(momentType) ? sanitizeInt(text, MAX_BPM) : sanitizeDecimal(text)
+                      )
+                    }
+                    keyboardType={isHrMoment(momentType) ? "number-pad" : "decimal-pad"}
                     placeholder="0"
                     placeholderTextColor={c.textFaint}
                   />
-                  <Dropdown
-                    style={styles.unitDropdown}
-                    value={unit || null}
-                    options={units.map((u) => ({ label: u, value: u, description: UNIT_NAMES[u] }))}
-                    onSelect={setUnit}
-                  />
+                  {isHrMoment(momentType) ? (
+                    <Text style={styles.bpmLabel}>bpm</Text>
+                  ) : (
+                    <Dropdown
+                      style={styles.unitDropdown}
+                      value={unit || null}
+                      options={units.map((u) => ({ label: u, value: u, description: UNIT_NAMES[u] }))}
+                      onSelect={setUnit}
+                    />
+                  )}
                 </View>
                 {momentType === "almost_done" ? (
                   <Text style={styles.paramTrail}>of my goal</Text>
@@ -615,6 +638,10 @@ function useStyles() {
   },
   unitDropdown: {
     flex: 1,
+  },
+  bpmLabel: {
+    ...typography.body,
+    color: c.text,
   },
   thenHeader: {
     flexDirection: "row",

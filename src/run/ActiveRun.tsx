@@ -6,6 +6,7 @@ import RunMap from "../components/RunMap";
 import { fonts, radius, spacing, typography, useColors } from "../theme";
 import { useStore } from "../program/store";
 import { useSettings } from "../settings/settings";
+import { useHeartRate } from "./heartRate";
 import { finishRun, pauseRun, resumeRun, useRunEngine } from "./runEngine";
 import {
   DistanceGoalUnit,
@@ -21,6 +22,9 @@ export default function ActiveRun() {
   const { presets } = useStore();
   const { paceUnit, keepAwake } = useSettings();
   const { config, distance, elapsed, paused, error } = useRunEngine();
+  const heart = useHeartRate();
+  // Show the heart-rate pill whenever a sensor is in play (connected or reading).
+  const showHeart = heart.status === "connected" || heart.bpm != null;
   // Stats-first by default; the toggle expands the map (Strava-style).
   const [showMap, setShowMap] = useState(false);
 
@@ -83,6 +87,12 @@ export default function ActiveRun() {
         <Text style={styles.programText}>{programName}</Text>
       </View>
       <View style={styles.topRight}>
+        {showHeart ? (
+          <View style={styles.heartPill}>
+            <MaterialCommunityIcons name="heart-pulse" size={14} color={c.primary} />
+            <Text style={styles.heartText}>{heart.bpm != null ? heart.bpm : "--"}</Text>
+          </View>
+        ) : null}
         {paused ? (
           <View style={styles.pausedPill}>
             <MaterialCommunityIcons name="pause" size={13} color={c.textMuted} />
@@ -295,6 +305,21 @@ function useStyles() {
   programText: {
     ...typography.label,
     color: c.primary,
+  },
+  heartPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    backgroundColor: c.overlay,
+    borderRadius: radius.pill,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+  },
+  heartText: {
+    ...typography.label,
+    fontFamily: fonts.bold,
+    color: c.text,
+    fontVariant: ["tabular-nums"],
   },
   pausedPill: {
     flexDirection: "row",

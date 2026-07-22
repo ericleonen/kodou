@@ -8,6 +8,11 @@ import { fonts, radius, spacing, typography, useColors } from "../theme";
 import { useSettings } from "../settings/settings";
 import { useStore } from "../program/store";
 import { useRuns } from "../run/runsStore";
+import {
+  connectHeartRateSensor,
+  disconnectHeartRateSensor,
+  useHeartRate,
+} from "../run/heartRate";
 import { DISTANCE_GOAL_UNITS, GOAL_UNIT_NAMES, TIME_GOAL_UNITS } from "../run/types";
 
 const NO_PROGRAM = "none";
@@ -139,6 +144,10 @@ export default function SettingsScreen() {
           />
         </Section>
 
+        <Section label="Heart rate">
+          <HeartRateSetting />
+        </Section>
+
         <Section label="Audio & feedback">
           <UnitRow
             label="Cue volume"
@@ -173,6 +182,48 @@ export default function SettingsScreen() {
         </TouchableOpacity>
         <Text style={styles.clearHint}>Deletes every run, preset, and sound on this device.</Text>
       </ScrollView>
+    </View>
+  );
+}
+
+/** Connect / disconnect a Bluetooth heart-rate sensor, with live status. */
+function HeartRateSetting() {
+  const c = useColors();
+  const styles = useStyles();
+  const hr = useHeartRate();
+  const busy = hr.status === "scanning" || hr.status === "connecting";
+  const connected = hr.status === "connected";
+
+  let label: string;
+  let hint: string;
+  if (connected) {
+    label = hr.deviceName ?? "Heart-rate sensor";
+    hint = hr.bpm != null ? `${hr.bpm} bpm` : "Connected";
+  } else if (hr.status === "scanning") {
+    label = "Searching…";
+    hint = "Make sure your sensor is on and nearby";
+  } else if (hr.status === "connecting") {
+    label = hr.deviceName ?? "Connecting…";
+    hint = "Pairing with your sensor";
+  } else {
+    label = "No sensor";
+    hint = hr.error ?? "Connect a Bluetooth heart-rate monitor";
+  }
+
+  const action = connected || busy ? disconnectHeartRateSensor : connectHeartRateSensor;
+  const actionLabel = connected ? "Disconnect" : busy ? "Cancel" : "Connect";
+
+  return (
+    <View style={styles.row}>
+      <View style={styles.rowLabelWrap}>
+        <Text style={styles.rowLabel}>{label}</Text>
+        <Text style={[styles.rowHint, hr.error && !busy && !connected ? styles.rowHintError : null]}>
+          {hint}
+        </Text>
+      </View>
+      <TouchableOpacity onPress={() => void action()} hitSlop={8} activeOpacity={0.7}>
+        <Text style={[styles.hrAction, connected && styles.hrActionDanger]}>{actionLabel}</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -304,6 +355,17 @@ function useStyles() {
         rowHint: {
           ...typography.label,
           color: c.textFaint,
+        },
+        rowHintError: {
+          color: c.danger,
+        },
+        hrAction: {
+          ...typography.body,
+          fontFamily: fonts.semibold,
+          color: c.primary,
+        },
+        hrActionDanger: {
+          color: c.danger,
         },
         divider: {
           height: StyleSheet.hairlineWidth,

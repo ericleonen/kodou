@@ -19,6 +19,8 @@ export const MOMENTS: Record<MomentType, { label: string; icon: IconName }> = {
   speeding_up: { label: "I speed up", icon: "trending-up" },
   almost_done: { label: "I'm almost done", icon: "flag-checkered" },
   split: { label: "I reach a split", icon: "map-marker-distance" },
+  hr_above: { label: "Heart rate high", icon: "heart-pulse" },
+  hr_below: { label: "Heart rate low", icon: "heart-outline" },
 };
 
 /** The curated set of responses. */
@@ -69,6 +71,10 @@ export function describeMoment(moment: CriticalMoment): string {
       return `Within ${moment.amount} ${moment.unit} of my goal`;
     case "split":
       return `Every ${moment.interval} ${moment.unit}`;
+    case "hr_above":
+      return `Heart rate above ${moment.bpm} bpm`;
+    case "hr_below":
+      return `Heart rate below ${moment.bpm} bpm`;
   }
 }
 

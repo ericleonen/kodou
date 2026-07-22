@@ -31,7 +31,9 @@
         "FOREGROUND_SERVICE",
         "FOREGROUND_SERVICE_LOCATION",
         "WAKE_LOCK",
-        "RECEIVE_BOOT_COMPLETED"
+        "RECEIVE_BOOT_COMPLETED",
+        "BLUETOOTH_SCAN",
+        "BLUETOOTH_CONNECT"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
@@ -53,6 +55,13 @@
       [
         "react-native-maps",
         {}
+      ],
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false,
+          "bluetoothAlwaysPermission": "Kodou connects to your heart-rate sensor over Bluetooth to trigger cues from your heart rate."
+        }
       ],
       "expo-font",
       "expo-splash-screen"

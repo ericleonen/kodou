@@ -16,7 +16,9 @@ export type CriticalMoment =
   | { type: "slowing_down"; threshold: number; unit: PaceUnit }
   | { type: "speeding_up"; threshold: number; unit: PaceUnit }
   | { type: "almost_done"; amount: number; unit: ProximityUnit }
-  | { type: "split"; interval: number; unit: DistanceUnit };
+  | { type: "split"; interval: number; unit: DistanceUnit }
+  | { type: "hr_above"; bpm: number }
+  | { type: "hr_below"; bpm: number };
 
 export type MomentType = CriticalMoment["type"];
 

@@ -5,6 +5,7 @@ import * as TaskManager from "expo-task-manager";
 import { createAudioPlayer, setAudioModeAsync } from "expo-audio";
 import * as Speech from "expo-speech";
 import { Rule, RuleResponse, Sound, SpeakPhrase } from "../program/types";
+import { getHeartRate, subscribeHeartRate } from "./heartRate";
 import {
   goalDistanceMeters,
   goalDurationSeconds,
@@ -40,6 +41,10 @@ const WARMUP_SEC = 18; // ignore the start-from-rest ramp for this long
 const WARMUP_DIST = 15; // …and until this much ground is covered (meters)
 const CUE_GAP_MS = 900; // spacing between queued cues
 const CUE_QUEUE_CAP = 4; // drop extra cues if the queue backs up
+// Heart-rate trigger robustness (mirrors the pace guards, in BPM/seconds).
+const HR_HYST = 2; // BPM dead-band around the threshold
+const HR_CONFIRM_SEC = 5; // condition must hold this long before firing
+const HR_COOLDOWN_SEC = 60; // min gap between fires of the same HR rule
 
 export type RunPhase = "idle" | "active" | "summary";
 
@@ -95,6 +100,10 @@ type TriggerMemory = {
   candidateSince?: number; // elapsed sec the fire condition began → confirmation
 };
 let triggers: Record<string, TriggerMemory> = {};
+
+// Live heart-rate subscription (see heartRate.ts). Active only during a run so
+// HR moments can fire between GPS fixes.
+let hrUnsub: (() => void) | null = null;
 
 // Cue playback queue: coincident moments are serialized so their sounds never
 // clobber the shared player. Each entry is one rule's responses.
@@ -398,8 +407,44 @@ function evaluateTriggers() {
           queueRule(rule);
         }
       }
+    } else if (moment.type === "hr_above" || moment.type === "hr_below") {
+      const bpm = getHeartRate();
+      // No fresh reading (no sensor, or it dropped out) → can't judge.
+      if (bpm == null) {
+        mem.candidateSince = undefined;
+        continue;
+      }
+      const above = moment.type === "hr_above";
+      const hit = above ? bpm >= moment.bpm + HR_HYST : bpm <= moment.bpm - HR_HYST;
+      const cleared = above ? bpm <= moment.bpm - HR_HYST : bpm >= moment.bpm + HR_HYST;
+      if (hit) {
+        // Require the condition to hold (confirmation) and respect the cooldown,
+        // so a single noisy beat doesn't fire and a sustained zone re-fires only
+        // once per cooldown.
+        if (mem.candidateSince === undefined) mem.candidateSince = elapsed;
+        const held = elapsed - mem.candidateSince >= HR_CONFIRM_SEC;
+        const cooled = mem.lastFireAt === undefined || elapsed - mem.lastFireAt >= HR_COOLDOWN_SEC;
+        if (held && cooled) {
+          queueRule(rule);
+          mem.lastFireAt = elapsed;
+          mem.candidateSince = undefined;
+        }
+      } else if (cleared) {
+        mem.candidateSince = undefined;
+      }
     }
   }
+}
+
+/**
+ * A fresh heart-rate reading arrived. Refresh the clock and re-check triggers
+ * so HR moments fire promptly even when GPS is quiet.
+ */
+function onHeartRateChange() {
+  if (state.phase !== "active" || state.paused) return;
+  state.elapsed = computeElapsed(Date.now());
+  evaluateTriggers();
+  emit();
 }
 
 // ---- Location handling --------------------------------------------------
@@ -533,6 +578,8 @@ export async function startRun(
   autoPaused = false;
   moveWindow = [];
   resetCues();
+  hrUnsub?.();
+  hrUnsub = subscribeHeartRate(onHeartRateChange);
   path.length = 0;
   samples.length = 0;
   events.length = 0;
@@ -627,6 +674,8 @@ export function finishRun() {
   state = { ...state, phase: "summary", paused: false, recording };
   emit();
   resetCues();
+  hrUnsub?.();
+  hrUnsub = null;
   void stopLocation();
 }
 
@@ -649,6 +698,8 @@ export function resetRun() {
   moveWindow = [];
   triggerSpeed = 0;
   resetCues();
+  hrUnsub?.();
+  hrUnsub = null;
   path.length = 0;
   samples.length = 0;
   events.length = 0;
