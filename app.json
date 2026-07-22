@@ -9,8 +9,8 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#F01030",
-      "imageWidth": 578
+      "backgroundColor": "#ea1d27",
+      "imageWidth": 512
     },
     "ios": {
       "supportsTablet": true,
@@ -35,7 +35,7 @@
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#F01030"
+        "backgroundColor": "#ea1d27"
       }
     },
     "plugins": [
